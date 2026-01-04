@@ -10,41 +10,41 @@ Route::get('/', function () {
 })->name('dashboard');
 
 // Input Data Routes (consolidated)
-Route::controller(InputDataController::class)->prefix('api')->group(function () {
+Route::controller(InputDataController::class)->group(function () {
     // Dosen
-    Route::get('/dosen', 'indexDosen');
-    Route::post('/dosen', 'storeDosen');
-    Route::get('/dosen/{id}', 'showDosen');
-    Route::put('/dosen/{id}', 'updateDosen');
-    Route::delete('/dosen/{id}', 'destroyDosen');
+    Route::get('/dosen', 'indexDosen')->name('dosen.index');
+    Route::post('/dosen', 'storeDosen')->name('dosen.store');
+    Route::get('/dosen/{id}', 'showDosen')->name('dosen.show');
+    Route::put('/dosen/{id}', 'updateDosen')->name('dosen.update');
+    Route::delete('/dosen/{id}', 'destroyDosen')->name('dosen.destroy');
 
     // Hari
-    Route::get('/hari', 'indexHari');
-    Route::post('/hari', 'storeHari');
-    Route::get('/hari/{id}', 'showHari');
-    Route::put('/hari/{id}', 'updateHari');
-    Route::delete('/hari/{id}', 'destroyHari');
+    Route::get('/hari', 'indexHari')->name('hari.index');
+    Route::post('/hari', 'storeHari')->name('hari.store');
+    Route::get('/hari/{id}', 'showHari')->name('hari.show');
+    Route::put('/hari/{id}', 'updateHari')->name('hari.update');
+    Route::delete('/hari/{id}', 'destroyHari')->name('hari.destroy');
 
     // Jam
-    Route::get('/jam', 'indexJam');
-    Route::post('/jam', 'storeJam');
-    Route::get('/jam/{id}', 'showJam');
-    Route::put('/jam/{id}', 'updateJam');
-    Route::delete('/jam/{id}', 'destroyJam');
+    Route::get('/jam', 'indexJam')->name('jam.index');
+    Route::post('/jam', 'storeJam')->name('jam.store');
+    Route::get('/jam/{id}', 'showJam')->name('jam.show');
+    Route::put('/jam/{id}', 'updateJam')->name('jam.update');
+    Route::delete('/jam/{id}', 'destroyJam')->name('jam.destroy');
 
     // Mata Kuliah
-    Route::get('/mata-kuliah', 'indexMataKuliah');
-    Route::post('/mata-kuliah', 'storeMataKuliah');
-    Route::get('/mata-kuliah/{id}', 'showMataKuliah');
-    Route::put('/mata-kuliah/{id}', 'updateMataKuliah');
-    Route::delete('/mata-kuliah/{id}', 'destroyMataKuliah');
+    Route::get('/mata-kuliah', 'indexMataKuliah')->name('matakuliah.index');
+    Route::post('/mata-kuliah', 'storeMataKuliah')->name('matakuliah.store');
+    Route::get('/mata-kuliah/{id}', 'showMataKuliah')->name('matakuliah.show');
+    Route::put('/mata-kuliah/{id}', 'updateMataKuliah')->name('matakuliah.update');
+    Route::delete('/mata-kuliah/{id}', 'destroyMataKuliah')->name('matakuliah.destroy');
 
     // Ruangan
-    Route::get('/ruangan', 'indexRuangan');
-    Route::post('/ruangan', 'storeRuangan');
-    Route::get('/ruangan/{id}', 'showRuangan');
-    Route::put('/ruangan/{id}', 'updateRuangan');
-    Route::delete('/ruangan/{id}', 'destroyRuangan');
+    Route::get('/ruangan', 'indexRuangan')->name('ruangan.index');
+    Route::post('/ruangan', 'storeRuangan')->name('ruangan.store');
+    Route::get('/ruangan/{id}', 'showRuangan')->name('ruangan.show');
+    Route::put('/ruangan/{id}', 'updateRuangan')->name('ruangan.update');
+    Route::delete('/ruangan/{id}', 'destroyRuangan')->name('ruangan.destroy');
 });
 
 // calender pages

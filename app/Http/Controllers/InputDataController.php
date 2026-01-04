@@ -33,7 +33,8 @@ class InputDataController extends Controller
   // --- DOSEN ---
   public function indexDosen()
   {
-    return response()->json(Dosen::all());
+    $dosen = Dosen::all();
+    return view('pages.master-data.dosen', compact('dosen'));
   }
 
   public function storeDosen(Request $request)
@@ -68,7 +69,8 @@ class InputDataController extends Controller
   // --- HARI ---
   public function indexHari()
   {
-    return response()->json(Hari::all());
+    $hari = Hari::all();
+    return view('pages.master-data.hari', compact('hari'));
   }
 
   public function storeHari(Request $request)
@@ -103,7 +105,8 @@ class InputDataController extends Controller
   // --- JAM ---
   public function indexJam()
   {
-    return response()->json(Jam::all());
+    $jam = Jam::all();
+    return view('pages.master-data.jam', compact('jam'));
   }
 
   public function storeJam(Request $request)
@@ -144,7 +147,8 @@ class InputDataController extends Controller
   // --- MATA KULIAH ---
   public function indexMataKuliah()
   {
-    return response()->json(MataKuliah::with('dosen')->get());
+    $mataKuliah = MataKuliah::with('dosen')->get();
+    return view('pages.master-data.mata-kuliah', compact('mataKuliah'));
   }
 
   public function storeMataKuliah(Request $request)
@@ -187,7 +191,8 @@ class InputDataController extends Controller
   // --- RUANGAN ---
   public function indexRuangan()
   {
-    return response()->json(Ruangan::all());
+    $ruangan = Ruangan::all();
+    return view('pages.master-data.ruangan', compact('ruangan'));
   }
 
   public function storeRuangan(Request $request)
