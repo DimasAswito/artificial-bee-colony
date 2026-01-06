@@ -3,121 +3,136 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InputDataController;
+use App\Http\Controllers\AuthController;
 
-// dashboard pages
-Route::get('/', function () {
-    return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
-})->name('dashboard');
+// Protected Routes
+Route::middleware(['auth'])->group(function () {
+    // dashboard pages
+    Route::get('/', function () {
+        return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
+    })->name('dashboard');
 
-// Input Data Routes (consolidated)
-Route::controller(InputDataController::class)->group(function () {
-    // Dosen
-    Route::get('/dosen', 'indexDosen')->name('dosen.index');
-    Route::post('/dosen', 'storeDosen')->name('dosen.store');
-    Route::get('/dosen/{id}', 'showDosen')->name('dosen.show');
-    Route::put('/dosen/{id}', 'updateDosen')->name('dosen.update');
-    Route::delete('/dosen/{id}', 'destroyDosen')->name('dosen.destroy');
+    // Input Data Routes (consolidated)
+    Route::controller(InputDataController::class)->group(function () {
+        // Dosen
+        Route::get('/dosen', 'indexDosen')->name('dosen.index');
+        Route::post('/dosen', 'storeDosen')->name('dosen.store');
+        Route::get('/dosen/{id}', 'showDosen')->name('dosen.show');
+        Route::put('/dosen/{id}', 'updateDosen')->name('dosen.update');
+        Route::delete('/dosen/{id}', 'destroyDosen')->name('dosen.destroy');
 
-    // Hari
-    Route::get('/hari', 'indexHari')->name('hari.index');
-    Route::post('/hari', 'storeHari')->name('hari.store');
-    Route::get('/hari/{id}', 'showHari')->name('hari.show');
-    Route::put('/hari/{id}', 'updateHari')->name('hari.update');
-    Route::delete('/hari/{id}', 'destroyHari')->name('hari.destroy');
+        // Hari
+        Route::get('/hari', 'indexHari')->name('hari.index');
+        Route::post('/hari', 'storeHari')->name('hari.store');
+        Route::get('/hari/{id}', 'showHari')->name('hari.show');
+        Route::put('/hari/{id}', 'updateHari')->name('hari.update');
+        Route::delete('/hari/{id}', 'destroyHari')->name('hari.destroy');
 
-    // Jam
-    Route::get('/jam', 'indexJam')->name('jam.index');
-    Route::post('/jam', 'storeJam')->name('jam.store');
-    Route::get('/jam/{id}', 'showJam')->name('jam.show');
-    Route::put('/jam/{id}', 'updateJam')->name('jam.update');
-    Route::delete('/jam/{id}', 'destroyJam')->name('jam.destroy');
+        // Jam
+        Route::get('/jam', 'indexJam')->name('jam.index');
+        Route::post('/jam', 'storeJam')->name('jam.store');
+        Route::get('/jam/{id}', 'showJam')->name('jam.show');
+        Route::put('/jam/{id}', 'updateJam')->name('jam.update');
+        Route::delete('/jam/{id}', 'destroyJam')->name('jam.destroy');
 
-    // Mata Kuliah
-    Route::get('/mata-kuliah', 'indexMataKuliah')->name('matakuliah.index');
-    Route::post('/mata-kuliah', 'storeMataKuliah')->name('matakuliah.store');
-    Route::get('/mata-kuliah/{id}', 'showMataKuliah')->name('matakuliah.show');
-    Route::put('/mata-kuliah/{id}', 'updateMataKuliah')->name('matakuliah.update');
-    Route::delete('/mata-kuliah/{id}', 'destroyMataKuliah')->name('matakuliah.destroy');
+        // Mata Kuliah
+        Route::get('/mata-kuliah', 'indexMataKuliah')->name('matakuliah.index');
+        Route::post('/mata-kuliah', 'storeMataKuliah')->name('matakuliah.store');
+        Route::get('/mata-kuliah/{id}', 'showMataKuliah')->name('matakuliah.show');
+        Route::put('/mata-kuliah/{id}', 'updateMataKuliah')->name('matakuliah.update');
+        Route::delete('/mata-kuliah/{id}', 'destroyMataKuliah')->name('matakuliah.destroy');
 
-    // Ruangan
-    Route::get('/ruangan', 'indexRuangan')->name('ruangan.index');
-    Route::post('/ruangan', 'storeRuangan')->name('ruangan.store');
-    Route::get('/ruangan/{id}', 'showRuangan')->name('ruangan.show');
-    Route::put('/ruangan/{id}', 'updateRuangan')->name('ruangan.update');
-    Route::delete('/ruangan/{id}', 'destroyRuangan')->name('ruangan.destroy');
+        // Ruangan
+        Route::get('/ruangan', 'indexRuangan')->name('ruangan.index');
+        Route::post('/ruangan', 'storeRuangan')->name('ruangan.store');
+        Route::get('/ruangan/{id}', 'showRuangan')->name('ruangan.show');
+        Route::put('/ruangan/{id}', 'updateRuangan')->name('ruangan.update');
+        Route::delete('/ruangan/{id}', 'destroyRuangan')->name('ruangan.destroy');
+    });
+
+    // calender pages
+    Route::get('/calendar', function () {
+        return view('pages.calender', ['title' => 'Calendar']);
+    })->name('calendar');
+
+    // profile pages
+    Route::get('/profile', function () {
+        return view('pages.profile', ['title' => 'Profile']);
+    })->name('profile');
+
+    // form pages
+    Route::get('/form-elements', function () {
+        return view('pages.form.form-elements', ['title' => 'Form Elements']);
+    })->name('form-elements');
+
+    // tables pages
+    Route::get('/basic-tables', function () {
+        return view('pages.tables.basic-tables', ['title' => 'Basic Tables']);
+    })->name('basic-tables');
+
+    // pages
+    Route::get('/blank', function () {
+        return view('pages.blank', ['title' => 'Blank']);
+    })->name('blank');
+
+    // error pages
+    Route::get('/error-404', function () {
+        return view('pages.errors.error-404', ['title' => 'Error 404']);
+    })->name('error-404');
+
+    // chart pages
+    Route::get('/line-chart', function () {
+        return view('pages.chart.line-chart', ['title' => 'Line Chart']);
+    })->name('line-chart');
+
+    Route::get('/bar-chart', function () {
+        return view('pages.chart.bar-chart', ['title' => 'Bar Chart']);
+    })->name('bar-chart');
+
+    // ui elements pages
+    Route::get('/alerts', function () {
+        return view('pages.ui-elements.alerts', ['title' => 'Alerts']);
+    })->name('alerts');
+
+    Route::get('/avatars', function () {
+        return view('pages.ui-elements.avatars', ['title' => 'Avatars']);
+    })->name('avatars');
+
+    Route::get('/badge', function () {
+        return view('pages.ui-elements.badges', ['title' => 'Badges']);
+    })->name('badges');
+
+    Route::get('/buttons', function () {
+        return view('pages.ui-elements.buttons', ['title' => 'Buttons']);
+    })->name('buttons');
+
+    Route::get('/image', function () {
+        return view('pages.ui-elements.images', ['title' => 'Images']);
+    })->name('images');
+
+    Route::get('/videos', function () {
+        return view('pages.ui-elements.videos', ['title' => 'Videos']);
+    })->name('videos');
 });
-
-// calender pages
-Route::get('/calendar', function () {
-    return view('pages.calender', ['title' => 'Calendar']);
-})->name('calendar');
-
-// profile pages
-Route::get('/profile', function () {
-    return view('pages.profile', ['title' => 'Profile']);
-})->name('profile');
-
-// form pages
-Route::get('/form-elements', function () {
-    return view('pages.form.form-elements', ['title' => 'Form Elements']);
-})->name('form-elements');
-
-// tables pages
-Route::get('/basic-tables', function () {
-    return view('pages.tables.basic-tables', ['title' => 'Basic Tables']);
-})->name('basic-tables');
-
-// pages
-
-Route::get('/blank', function () {
-    return view('pages.blank', ['title' => 'Blank']);
-})->name('blank');
-
-// error pages
-Route::get('/error-404', function () {
-    return view('pages.errors.error-404', ['title' => 'Error 404']);
-})->name('error-404');
-
-// chart pages
-Route::get('/line-chart', function () {
-    return view('pages.chart.line-chart', ['title' => 'Line Chart']);
-})->name('line-chart');
-
-Route::get('/bar-chart', function () {
-    return view('pages.chart.bar-chart', ['title' => 'Bar Chart']);
-})->name('bar-chart');
-
 
 // authentication pages
 Route::get('/signin', function () {
     return view('pages.auth.signin', ['title' => 'Sign In']);
 })->name('signin');
 
-Route::get('/signup', function () {
-    return view('pages.auth.signup', ['title' => 'Sign Up']);
-})->name('signup');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// ui elements pages
-Route::get('/alerts', function () {
-    return view('pages.ui-elements.alerts', ['title' => 'Alerts']);
-})->name('alerts');
+// Redirect 'login' named route to 'signin' for auth middleware compatibility
+Route::get('/login', function () {
+    return redirect()->route('signin');
+})->name('login');
 
-Route::get('/avatars', function () {
-    return view('pages.ui-elements.avatars', ['title' => 'Avatars']);
-})->name('avatars');
+Route::post('/signin', [AuthController::class, 'signin'])->name('signin.perform');
 
-Route::get('/badge', function () {
-    return view('pages.ui-elements.badges', ['title' => 'Badges']);
-})->name('badges');
+// Google Auth Routes
+Route::get('/auth/google/redirect', [AuthController::class, 'redirectToGoogle'])->name('auth.google.redirect');
+Route::get('/auth/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
+Route::post('/auth/google/exchange', [AuthController::class, 'exchangeToken'])->name('auth.google.exchange');
 
-Route::get('/buttons', function () {
-    return view('pages.ui-elements.buttons', ['title' => 'Buttons']);
-})->name('buttons');
-
-Route::get('/image', function () {
-    return view('pages.ui-elements.images', ['title' => 'Images']);
-})->name('images');
-
-Route::get('/videos', function () {
-    return view('pages.ui-elements.videos', ['title' => 'Videos']);
-})->name('videos');
+Route::get('/signup', [AuthController::class, 'showSignup'])->name('signup');
+Route::post('/signup', [AuthController::class, 'signup'])->name('signup.perform');
