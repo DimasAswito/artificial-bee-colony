@@ -31,7 +31,7 @@ class MenuHelper
             [
                 'name' => 'Modifikasi Jadwal',
                 'icon' => 'pages',
-                'path' => '/form-elements',
+                'path' => '/basic-tables',
                 // 'subItems' => [
                 //     ['name' => 'Blank Page', 'path' => '/blank', 'pro' => false],
                 //     ['name' => '404 Error', 'path' => '/error-404', 'pro' => false]
