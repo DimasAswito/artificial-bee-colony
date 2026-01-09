@@ -25,6 +25,14 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/dosen/{id}', 'updateDosen')->name('dosen.update');
         Route::delete('/dosen/{id}', 'destroyDosen')->name('dosen.destroy');
 
+        // Mata Kuliah
+        Route::get('/mata-kuliah/data', 'getMataKuliahData')->name('mata-kuliah.data');
+        Route::get('/mata-kuliah', 'indexMataKuliah')->name('mata-kuliah.index');
+        Route::post('/mata-kuliah', 'storeMataKuliah')->name('mata-kuliah.store');
+        Route::get('/mata-kuliah/{id}', 'showMataKuliah')->name('mata-kuliah.show');
+        Route::put('/mata-kuliah/{id}', 'updateMataKuliah')->name('mata-kuliah.update');
+        Route::delete('/mata-kuliah/{id}', 'destroyMataKuliah')->name('mata-kuliah.destroy');
+
         // Hari
         Route::get('/hari', 'indexHari')->name('hari.index');
         Route::post('/hari', 'storeHari')->name('hari.store');
@@ -38,13 +46,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/jam/{id}', 'showJam')->name('jam.show');
         Route::put('/jam/{id}', 'updateJam')->name('jam.update');
         Route::delete('/jam/{id}', 'destroyJam')->name('jam.destroy');
-
-        // Mata Kuliah
-        Route::get('/mata-kuliah', 'indexMataKuliah')->name('matakuliah.index');
-        Route::post('/mata-kuliah', 'storeMataKuliah')->name('matakuliah.store');
-        Route::get('/mata-kuliah/{id}', 'showMataKuliah')->name('matakuliah.show');
-        Route::put('/mata-kuliah/{id}', 'updateMataKuliah')->name('matakuliah.update');
-        Route::delete('/mata-kuliah/{id}', 'destroyMataKuliah')->name('matakuliah.destroy');
 
         // Ruangan
         Route::get('/ruangan', 'indexRuangan')->name('ruangan.index');

@@ -56,7 +56,7 @@
 
                     <div class="flex items-end justify-between mt-5">
                         <div>
-                            <span class="text-sm text-gray-500 dark:text-gray-400">Total Dosen</span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Data Dosen</span>
                             <div class="flex items-baseline gap-1 mt-2">
                 <h4 class="font-bold text-gray-800 text-title-sm dark:text-white/90" x-text="activeDosenCount"></h4>
                                 <span class="text-sm text-gray-400" x-text="'/' + filteredData.length + ' Dosen'"></span>
@@ -374,7 +374,7 @@
 
                 async fetchLogs() {
                     try {
-                        const response = await fetch('{{ route('logs.data') }}');
+                        const response = await fetch('{{ route('logs.data') }}?type=Data Dosen');
                         const data = await response.json();
                         this.logs = data;
                     } catch (error) {

@@ -29,10 +29,16 @@ class InputDataController extends Controller
     ]);
   }
 
-  public function getLogs()
+  public function getLogs(Request $request)
   {
+    $query = Log::with('user')->orderBy('created_at', 'desc');
+
+    if ($request->has('type')) {
+      $query->where('type', $request->type);
+    }
+
     // Fetch latest 10 logs with user info
-    $logs = Log::with('user')->orderBy('created_at', 'desc')->take(10)->get();
+    $logs = $query->take(10)->get();
 
     // Map to format expected by frontend
     $formattedLogs = $logs->map(function ($log) {
@@ -187,8 +193,26 @@ class InputDataController extends Controller
   // --- MATA KULIAH ---
   public function indexMataKuliah()
   {
-    $mataKuliah = MataKuliah::with('dosen')->get();
-    return view('pages.master-data.mata-kuliah', compact('mataKuliah'));
+    return view('pages.master-data.mata-kuliah');
+  }
+
+  public function getMataKuliahData()
+  {
+    $mataKuliah = MataKuliah::with('dosen')->orderBy('id', 'desc')->get();
+
+    // Map data to match frontend expectation
+    $formattedData = $mataKuliah->map(function ($mk) {
+      return [
+        'id' => $mk->id,
+        'name' => $mk->nama_matkul,
+        'sks' => $mk->sks,
+        'dosen' => $mk->dosen ? $mk->dosen->nama_dosen : '-',
+        'dosen_id' => $mk->dosen_id, // Needed for edit form
+        'status' => $mk->status
+      ];
+    });
+
+    return response()->json($formattedData);
   }
 
   public function storeMataKuliah(Request $request)
@@ -196,9 +220,15 @@ class InputDataController extends Controller
     $request->validate([
       'nama_matkul' => 'required|string|max:255',
       'sks' => 'required|integer',
-      'dosen_id' => 'required|exists:dosen,id',
+      'dosen_id' => 'nullable|exists:dosen,id',
+      'status' => 'nullable|in:Active,Inactive'
     ]);
-    $mataKuliah = MataKuliah::create($request->all());
+
+    $data = $request->all();
+    // Ensure default status if not provided (though frontend sends it)
+    $data['status'] = $data['status'] ?? 'Active';
+
+    $mataKuliah = MataKuliah::create($data);
     $this->logActivity('Data Mata Kuliah', 'Menambah Data Mata Kuliah : ' . $mataKuliah->nama_matkul);
     return response()->json(['message' => 'Mata Kuliah created successfully', 'data' => $mataKuliah], 201);
   }
@@ -213,7 +243,8 @@ class InputDataController extends Controller
     $request->validate([
       'nama_matkul' => 'required|string|max:255',
       'sks' => 'required|integer',
-      'dosen_id' => 'required|exists:dosen,id',
+      'dosen_id' => 'nullable|exists:dosen,id',
+      'status' => 'nullable|in:Active,Inactive'
     ]);
     $mataKuliah = MataKuliah::findOrFail($id);
     $mataKuliah->update($request->all());

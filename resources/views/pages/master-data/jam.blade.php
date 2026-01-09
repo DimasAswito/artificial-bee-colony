@@ -71,7 +71,7 @@
 
                     <div class="flex items-end justify-between mt-5">
                         <div>
-                            <span class="text-sm text-gray-500 dark:text-gray-400">Total Slot Jam</span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Data Slot Jam</span>
                             <h4 class="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">8</h4>
                         </div>
                         
