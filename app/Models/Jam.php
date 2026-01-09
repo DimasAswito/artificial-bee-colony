@@ -15,6 +15,7 @@ class Jam extends Model
     protected $fillable = [
         'jam_mulai',
         'jam_selesai',
+        'status',
     ];
 
     public $timestamps = false;

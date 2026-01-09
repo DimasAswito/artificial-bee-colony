@@ -16,7 +16,7 @@ class InputDataController extends Controller
   /**
    * Helper to log activity
    */
-  private function logActivity($type, $description, $note = null)
+  private function logActivity($type, $description)
   {
     // Ensure user is authenticated, otherwise logging might fail due to null user_id
     // For testing purposes, you might want to ensure a user is logged in or handle this gracefully.
@@ -26,22 +26,50 @@ class InputDataController extends Controller
       'user_id' => $userId,
       'type' => $type,
       'description' => $description,
-      'note' => $note,
     ]);
+  }
+
+  public function getLogs()
+  {
+    // Fetch latest 10 logs with user info
+    $logs = Log::with('user')->orderBy('created_at', 'desc')->take(10)->get();
+
+    // Map to format expected by frontend
+    $formattedLogs = $logs->map(function ($log) {
+      return [
+        'user' => $log->user ? $log->user->name : 'System',
+        'action' => $log->description,
+        'time' => \Carbon\Carbon::parse($log->created_at)->format('Y-M-d H:i:s'),
+      ];
+    });
+
+    return response()->json($formattedLogs);
   }
 
   // --- DOSEN ---
   public function indexDosen()
   {
-    $dosen = Dosen::all();
-    return view('pages.master-data.dosen', compact('dosen'));
+    return view('pages.master-data.dosen');
   }
+
+  public function getDosenData()
+  {
+    $dosen = Dosen::orderBy('nama_dosen', 'asc')->get();
+    return response()->json($dosen);
+  }
+
 
   public function storeDosen(Request $request)
   {
-    $request->validate(['nama_dosen' => 'required|string|max:255']);
+    $request->validate([
+      'nama_dosen' => 'required|string|max:255',
+      'nip' => 'nullable|string|max:20',
+      'email' => 'nullable|email|max:255',
+      'status' => 'nullable|in:Active,Inactive',
+    ]);
+
     $dosen = Dosen::create($request->all());
-    $this->logActivity('create', 'Menambah Data Dosen', 'Nama: ' . $dosen->nama_dosen);
+    $this->logActivity('Data Dosen', 'Menambah Data Dosen : ' . $dosen->nama_dosen);
     return response()->json(['message' => 'Dosen created successfully', 'data' => $dosen], 201);
   }
 
@@ -52,17 +80,25 @@ class InputDataController extends Controller
 
   public function updateDosen(Request $request, $id)
   {
-    $request->validate(['nama_dosen' => 'required|string|max:255']);
+    $request->validate([
+      'nama_dosen' => 'required|string|max:255',
+      'nip' => 'nullable|string|max:20',
+      'email' => 'nullable|email|max:255',
+      'status' => 'nullable|in:Active,Inactive',
+    ]);
+
     $dosen = Dosen::findOrFail($id);
     $dosen->update($request->all());
-    $this->logActivity('update', 'Mengupdate Data Dosen', 'ID: ' . $id . ', Nama Baru: ' . $dosen->nama_dosen);
+    $this->logActivity('Data Dosen', 'Mengubah data Dosen : ' . $dosen->nama_dosen);
     return response()->json(['message' => 'Dosen updated successfully', 'data' => $dosen]);
   }
 
   public function destroyDosen($id)
   {
-    Dosen::findOrFail($id)->delete();
-    $this->logActivity('delete', 'Menghapus Data Dosen', 'ID: ' . $id);
+    $dosen = Dosen::findOrFail($id);
+    $namaDosen = $dosen->nama_dosen;
+    $dosen->delete();
+    $this->logActivity('Data Dosen', 'Menghapus Data Dosen : ' . $namaDosen);
     return response()->json(['message' => 'Dosen deleted successfully']);
   }
 
@@ -77,7 +113,7 @@ class InputDataController extends Controller
   {
     $request->validate(['nama_hari' => 'required|string|max:255']);
     $hari = Hari::create($request->all());
-    $this->logActivity('create', 'Menambah Data Hari', 'Nama: ' . $hari->nama_hari);
+    $this->logActivity('Data Hari', 'Menambah Data Hari : ' . $hari->nama_hari);
     return response()->json(['message' => 'Hari created successfully', 'data' => $hari], 201);
   }
 
@@ -91,14 +127,16 @@ class InputDataController extends Controller
     $request->validate(['nama_hari' => 'required|string|max:255']);
     $hari = Hari::findOrFail($id);
     $hari->update($request->all());
-    $this->logActivity('update', 'Mengupdate Data Hari', 'ID: ' . $id . ', Nama Baru: ' . $hari->nama_hari);
+    $this->logActivity('Data Hari', 'Mengubah data Hari : ' . $hari->nama_hari);
     return response()->json(['message' => 'Hari updated successfully', 'data' => $hari]);
   }
 
   public function destroyHari($id)
   {
-    Hari::findOrFail($id)->delete();
-    $this->logActivity('delete', 'Menghapus Data Hari', 'ID: ' . $id);
+    $hari = Hari::findOrFail($id);
+    $namaHari = $hari->nama_hari;
+    $hari->delete();
+    $this->logActivity('Data Hari', 'Menghapus Data Hari : ' . $namaHari);
     return response()->json(['message' => 'Hari deleted successfully']);
   }
 
@@ -116,7 +154,7 @@ class InputDataController extends Controller
       'jam_selesai' => 'required',
     ]);
     $jam = Jam::create($request->all());
-    $this->logActivity('create', 'Menambah Data Jam', 'Mulai: ' . $jam->jam_mulai . ', Selesai: ' . $jam->jam_selesai);
+    $this->logActivity('Data Jam', 'Menambah Data Jam : ' . $jam->jam_mulai . ' - ' . $jam->jam_selesai);
     return response()->json(['message' => 'Jam created successfully', 'data' => $jam], 201);
   }
 
@@ -133,14 +171,16 @@ class InputDataController extends Controller
     ]);
     $jam = Jam::findOrFail($id);
     $jam->update($request->all());
-    $this->logActivity('update', 'Mengupdate Data Jam', 'ID: ' . $id);
+    $this->logActivity('Data Jam', 'Mengubah data Jam : ' . $jam->jam_mulai . ' - ' . $jam->jam_selesai);
     return response()->json(['message' => 'Jam updated successfully', 'data' => $jam]);
   }
 
   public function destroyJam($id)
   {
-    Jam::findOrFail($id)->delete();
-    $this->logActivity('delete', 'Menghapus Data Jam', 'ID: ' . $id);
+    $jam = Jam::findOrFail($id);
+    $jamDetail = $jam->jam_mulai . ' - ' . $jam->jam_selesai;
+    $jam->delete();
+    $this->logActivity('Data Jam', 'Menghapus Data Jam : ' . $jamDetail);
     return response()->json(['message' => 'Jam deleted successfully']);
   }
 
@@ -159,7 +199,7 @@ class InputDataController extends Controller
       'dosen_id' => 'required|exists:dosen,id',
     ]);
     $mataKuliah = MataKuliah::create($request->all());
-    $this->logActivity('create', 'Menambah Data Mata Kuliah', 'Nama: ' . $mataKuliah->nama_matkul);
+    $this->logActivity('Data Mata Kuliah', 'Menambah Data Mata Kuliah : ' . $mataKuliah->nama_matkul);
     return response()->json(['message' => 'Mata Kuliah created successfully', 'data' => $mataKuliah], 201);
   }
 
@@ -177,14 +217,16 @@ class InputDataController extends Controller
     ]);
     $mataKuliah = MataKuliah::findOrFail($id);
     $mataKuliah->update($request->all());
-    $this->logActivity('update', 'Mengupdate Data Mata Kuliah', 'ID: ' . $id);
+    $this->logActivity('Data Mata Kuliah', 'Mengubah data Mata Kuliah : ' . $mataKuliah->nama_matkul);
     return response()->json(['message' => 'Mata Kuliah updated successfully', 'data' => $mataKuliah]);
   }
 
   public function destroyMataKuliah($id)
   {
-    MataKuliah::findOrFail($id)->delete();
-    $this->logActivity('delete', 'Menghapus Data Mata Kuliah', 'ID: ' . $id);
+    $mataKuliah = MataKuliah::findOrFail($id);
+    $namaMatkul = $mataKuliah->nama_matkul;
+    $mataKuliah->delete();
+    $this->logActivity('Data Mata Kuliah', 'Menghapus Data Mata Kuliah : ' . $namaMatkul);
     return response()->json(['message' => 'Mata Kuliah deleted successfully']);
   }
 
@@ -199,7 +241,7 @@ class InputDataController extends Controller
   {
     $request->validate(['nama_ruangan' => 'required|string|max:255']);
     $ruangan = Ruangan::create($request->all());
-    $this->logActivity('create', 'Menambah Data Ruangan', 'Nama: ' . $ruangan->nama_ruangan);
+    $this->logActivity('Data Ruangan', 'Menambah Data Ruangan : ' . $ruangan->nama_ruangan);
     return response()->json(['message' => 'Ruangan created successfully', 'data' => $ruangan], 201);
   }
 
@@ -213,14 +255,16 @@ class InputDataController extends Controller
     $request->validate(['nama_ruangan' => 'required|string|max:255']);
     $ruangan = Ruangan::findOrFail($id);
     $ruangan->update($request->all());
-    $this->logActivity('update', 'Mengupdate Data Ruangan', 'ID: ' . $id);
+    $this->logActivity('Data Ruangan', 'Mengubah data Ruangan : ' . $ruangan->nama_ruangan);
     return response()->json(['message' => 'Ruangan updated successfully', 'data' => $ruangan]);
   }
 
   public function destroyRuangan($id)
   {
-    Ruangan::findOrFail($id)->delete();
-    $this->logActivity('delete', 'Menghapus Data Ruangan', 'ID: ' . $id);
+    $ruangan = Ruangan::findOrFail($id);
+    $namaRuangan = $ruangan->nama_ruangan;
+    $ruangan->delete();
+    $this->logActivity('Data Ruangan', 'Menghapus Data Ruangan : ' . $namaRuangan);
     return response()->json(['message' => 'Ruangan deleted successfully']);
   }
 }

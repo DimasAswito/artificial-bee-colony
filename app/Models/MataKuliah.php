@@ -17,6 +17,7 @@ class MataKuliah extends Model
         'nama_matkul',
         'sks',
         'dosen_id',
+        'status',
     ];
 
     public $timestamps = false;

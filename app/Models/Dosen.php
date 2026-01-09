@@ -24,6 +24,9 @@ class Dosen extends Model
      */
     protected $fillable = [
         'nama_dosen',
+        'nip',
+        'email',
+        'status',
     ];
 
     /**

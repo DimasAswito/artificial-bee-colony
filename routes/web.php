@@ -14,7 +14,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Input Data Routes (consolidated)
     Route::controller(InputDataController::class)->group(function () {
+        // Logs
+        Route::get('/logs/data', 'getLogs')->name('logs.data');
+
         // Dosen
+        Route::get('/dosen/data', 'getDosenData')->name('dosen.data');
         Route::get('/dosen', 'indexDosen')->name('dosen.index');
         Route::post('/dosen', 'storeDosen')->name('dosen.store');
         Route::get('/dosen/{id}', 'showDosen')->name('dosen.show');
