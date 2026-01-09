@@ -3,238 +3,7 @@
 @section('content')
     <x-common.page-breadcrumb pageTitle="Data Dosen" />
 
-    <div class="space-y-6" x-data="{
-        dosenData: [],
-        logs: [],
-        itemsPerPage: 5,
-        currentPage: 1,
-        editModalOpen: false,
-        isLoading: false,
-        search: '',
-        form: {
-            id: null,
-            name: '',
-            nip: '',
-            email: '',
-            status: 'Active'
-        },
-        isEditing: false,
-
-        init() {
-            this.fetchDosen();
-            this.fetchLogs();
-        },
-
-        async fetchLogs() {
-            try {
-                const response = await fetch('{{ route('logs.data') }}');
-                const data = await response.json();
-                this.logs = data;
-            } catch (error) {
-                console.error('Error fetching logs:', error);
-            }
-        },
-
-        async fetchDosen() {
-            this.isLoading = true;
-            try {
-                const response = await fetch('{{ route('dosen.data') }}');
-                const data = await response.json();
-                this.dosenData = data;
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                Swal.fire('Error', 'Gagal memuat data dosen', 'error');
-            } finally {
-                this.isLoading = false;
-            }
-        },
-
-        get filteredData() {
-            if (!this.search) return this.dosenData;
-            return this.dosenData.filter(d => 
-                d.nama_dosen.toLowerCase().includes(this.search.toLowerCase()) || 
-                (d.nip && d.nip.includes(this.search)) ||
-                (d.email && d.email.toLowerCase().includes(this.search.toLowerCase()))
-            );
-        },
-
-        get totalPages() {
-            return Math.ceil(this.filteredData.length / this.itemsPerPage);
-        },
-
-        get paginatedData() {
-            const start = (this.currentPage - 1) * this.itemsPerPage;
-            const end = start + this.itemsPerPage;
-            return this.filteredData.slice(start, end);
-        },
-
-        get displayedPages() {
-            const range = [];
-            for (let i = 1; i <= this.totalPages; i++) {
-                if (
-                    i === 1 ||
-                    i === this.totalPages ||
-                    (i >= this.currentPage - 1 && i <= this.currentPage + 1)
-                ) {
-                    range.push(i);
-                } else if (range[range.length - 1] !== '...') {
-                    range.push('...');
-                }
-            }
-            return range;
-        },
-
-        prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-            }
-        },
-
-        nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++;
-            }
-        },
-
-        goToPage(page) {
-            if (typeof page === 'number' && page >= 1 && page <= this.totalPages) {
-                this.currentPage = page;
-            }
-        },
-
-        getStatusClass(status) {
-            const classes = {
-                'Active': 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-500',
-                'Inactive': 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500',
-            };
-            return classes[status] || 'bg-gray-50 text-gray-600 dark:bg-gray-500/15 dark:text-gray-500';
-        },
-
-        openEditModal(dosen) {
-            this.form = {
-                id: dosen.id,
-                name: dosen.nama_dosen,
-                nip: dosen.nip || '',
-                email: dosen.email || '',
-                status: dosen.status || 'Active'
-            };
-            this.isEditing = true;
-            this.editModalOpen = true;
-        },
-
-        closeModal() {
-            this.editModalOpen = false;
-            this.resetForm();
-        },
-
-        resetForm() {
-            this.form = { id: null, name: '', nip: '', email: '', status: 'Active' };
-            this.isEditing = false;
-        },
-
-        async saveDosen() {
-            if (!this.form.name) {
-                Swal.fire('Error', 'Nama Dosen wajib diisi', 'error');
-                return;
-            }
-
-            const url = this.isEditing ? `/dosen/${this.form.id}` : '{{ route('dosen.store') }}';
-            const method = this.isEditing ? 'PUT' : 'POST';
-            
-            // Payload needs to match Controller validation field names
-            const payload = {
-                nama_dosen: this.form.name,
-                nip: this.form.nip,
-                email: this.form.email,
-                status: this.form.status,
-                _token: '{{ csrf_token() }}'
-            };
-
-            try {
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                await this.fetchDosen();
-                await this.fetchLogs();
-                this.closeModal();
-                
-                const Toast = Swal.mixin({
-                    toast: true,
-                    position: 'bottom-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true
-                });
-                Toast.fire({
-                    icon: 'success',
-                    title: this.isEditing ? 'Data dosen berhasil diperbarui' : 'Data dosen berhasil ditambahkan'
-                });
-
-                // Reset form if it was an add operation (modal is separate for edit)
-                if (!this.isEditing) {
-                    this.resetForm();
-                }
-            } catch (error) {
-                console.error('Error saving data:', error);
-                Swal.fire('Error', 'Gagal menyimpan data', 'error');
-            }
-        },
-
-        async confirmDelete(id) {
-            Swal.fire({
-                title: 'Apakah anda yakin?',
-                text: 'Data yang dihapus tidak dapat dikembalikan!',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#3b82f6',
-                confirmButtonText: 'Ya, Hapus!',
-                cancelButtonText: 'Batal'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        const response = await fetch(`/dosen/${id}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            }
-                        });
-
-                        if (response.ok) {
-                            await this.fetchDosen();
-                            await this.fetchLogs();
-                            const Toast = Swal.mixin({
-                                toast: true,
-                                position: 'bottom-end',
-                                showConfirmButton: false,
-                                timer: 3000,
-                                timerProgressBar: true
-                            });
-                            Toast.fire({
-                                icon: 'success',
-                                title: 'Data dosen berhasil dihapus'
-                            });
-                        } else {
-                            throw new Error('Failed to delete');
-                        }
-                    } catch (error) {
-                         Swal.fire('Error', 'Gagal menghapus data', 'error');
-                    }
-                }
-            });
-        }
-    }">
+    <div class="space-y-6" x-data="dosenPageData()">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Card 1: Input Nama Dosen -->
             <div class="lg:col-span-2">
@@ -288,7 +57,10 @@
                     <div class="flex items-end justify-between mt-5">
                         <div>
                             <span class="text-sm text-gray-500 dark:text-gray-400">Total Dosen</span>
-                            <h4 class="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90" x-text="filteredData.length"></h4>
+                            <div class="flex items-baseline gap-1 mt-2">
+                <h4 class="font-bold text-gray-800 text-title-sm dark:text-white/90" x-text="activeDosenCount"></h4>
+                                <span class="text-sm text-gray-400" x-text="'/' + filteredData.length + ' Dosen'"></span>
+                            </div>
                         </div>
                         
                         <span class="flex items-center gap-1 rounded-full bg-success-50 py-0.5 pl-2 pr-2.5 text-sm font-medium text-success-600 dark:bg-success-500/15 dark:text-success-500">
@@ -409,7 +181,7 @@
         <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
             <div class="flex justify-between gap-2 mb-4 sm:items-center">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Riwayat Transaksi</h3>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Histori Data Dosen Terbaru</h3>
                 </div>
             </div>
 
@@ -576,4 +348,244 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function dosenPageData() {
+            return {
+                dosenData: [],
+                logs: [],
+                itemsPerPage: 5,
+                currentPage: 1,
+                editModalOpen: false,
+                isLoading: false,
+                search: '',
+                form: {
+                    id: null,
+                    name: '',
+                    nip: '',
+                    email: '',
+                    status: 'Active'
+                },
+                isEditing: false,
+
+                init() {
+                    this.fetchDosen();
+                    this.fetchLogs();
+                },
+
+                async fetchLogs() {
+                    try {
+                        const response = await fetch('{{ route('logs.data') }}');
+                        const data = await response.json();
+                        this.logs = data;
+                    } catch (error) {
+                        console.error('Error fetching logs:', error);
+                    }
+                },
+
+                async fetchDosen() {
+                    this.isLoading = true;
+                    try {
+                        const response = await fetch('{{ route('dosen.data') }}');
+                        const data = await response.json();
+                        this.dosenData = data;
+                    } catch (error) {
+                        console.error('Error fetching data:', error);
+                        Swal.fire('Error', 'Gagal memuat data dosen', 'error');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                get filteredData() {
+                    if (!this.search) return this.dosenData;
+                    return this.dosenData.filter(d => 
+                        d.nama_dosen.toLowerCase().includes(this.search.toLowerCase()) || 
+                        (d.nip && d.nip.includes(this.search)) ||
+                        (d.email && d.email.toLowerCase().includes(this.search.toLowerCase()))
+                    );
+                },
+
+                get activeDosenCount() {
+                    return this.filteredData.filter(d => (d.status || 'Active') === 'Active').length;
+                },
+
+                get totalPages() {
+                    return Math.ceil(this.filteredData.length / this.itemsPerPage);
+                },
+
+                get paginatedData() {
+                    const start = (this.currentPage - 1) * this.itemsPerPage;
+                    const end = start + this.itemsPerPage;
+                    return this.filteredData.slice(start, end);
+                },
+
+                get displayedPages() {
+                    const range = [];
+                    for (let i = 1; i <= this.totalPages; i++) {
+                        if (
+                            i === 1 ||
+                            i === this.totalPages ||
+                            (i >= this.currentPage - 1 && i <= this.currentPage + 1)
+                        ) {
+                            range.push(i);
+                        } else if (range[range.length - 1] !== '...') {
+                            range.push('...');
+                        }
+                    }
+                    return range;
+                },
+
+                prevPage() {
+                    if (this.currentPage > 1) {
+                        this.currentPage--;
+                    }
+                },
+
+                nextPage() {
+                    if (this.currentPage < this.totalPages) {
+                        this.currentPage++;
+                    }
+                },
+
+                goToPage(page) {
+                    if (typeof page === 'number' && page >= 1 && page <= this.totalPages) {
+                        this.currentPage = page;
+                    }
+                },
+
+                getStatusClass(status) {
+                    const classes = {
+                        'Active': 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-500',
+                        'Inactive': 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500',
+                    };
+                    return classes[status] || 'bg-gray-50 text-gray-600 dark:bg-gray-500/15 dark:text-gray-500';
+                },
+
+                openEditModal(dosen) {
+                    this.form = {
+                        id: dosen.id,
+                        name: dosen.nama_dosen,
+                        nip: dosen.nip || '',
+                        email: dosen.email || '',
+                        status: dosen.status || 'Active'
+                    };
+                    this.isEditing = true;
+                    this.editModalOpen = true;
+                },
+
+                closeModal() {
+                    this.editModalOpen = false;
+                    this.resetForm();
+                },
+
+                resetForm() {
+                    this.form = { id: null, name: '', nip: '', email: '', status: 'Active' };
+                    this.isEditing = false;
+                },
+
+                async saveDosen() {
+                    if (!this.form.name) {
+                        Swal.fire('Error', 'Nama Dosen wajib diisi', 'error');
+                        return;
+                    }
+
+                    const url = this.isEditing ? `/dosen/${this.form.id}` : '{{ route('dosen.store') }}';
+                    const method = this.isEditing ? 'PUT' : 'POST';
+                    
+                    // Payload needs to match Controller validation field names
+                    const payload = {
+                        nama_dosen: this.form.name,
+                        nip: this.form.nip,
+                        email: this.form.email,
+                        status: this.form.status,
+                        _token: '{{ csrf_token() }}'
+                    };
+
+                    try {
+                        const response = await fetch(url, {
+                            method: method,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+
+                        await this.fetchDosen();
+                        await this.fetchLogs();
+                        this.closeModal();
+                        
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'bottom-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({
+                            icon: 'success',
+                            title: this.isEditing ? 'Data dosen berhasil diperbarui' : 'Data dosen berhasil ditambahkan'
+                        });
+
+                        // Reset form if it was an add operation (modal is separate for edit)
+                        if (!this.isEditing) {
+                            this.resetForm();
+                        }
+                    } catch (error) {
+                        console.error('Error saving data:', error);
+                        Swal.fire('Error', 'Gagal menyimpan data', 'error');
+                    }
+                },
+
+                async confirmDelete(id) {
+                    Swal.fire({
+                        title: 'Apakah anda yakin?',
+                        text: 'Data yang dihapus tidak dapat dikembalikan!',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#3b82f6',
+                        confirmButtonText: 'Ya, Hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            try {
+                                const response = await fetch(`/dosen/${id}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                    }
+                                });
+
+                                if (response.ok) {
+                                    await this.fetchDosen();
+                                    await this.fetchLogs();
+                                    const Toast = Swal.mixin({
+                                        toast: true,
+                                        position: 'bottom-end',
+                                        showConfirmButton: false,
+                                        timer: 3000,
+                                        timerProgressBar: true
+                                    });
+                                    Toast.fire({
+                                        icon: 'success',
+                                        title: 'Data dosen berhasil dihapus'
+                                    });
+                                } else {
+                                    throw new Error('Failed to delete');
+                                }
+                            } catch (error) {
+                                 Swal.fire('Error', 'Gagal menghapus data', 'error');
+                            }
+                        }
+                    });
+                }
+            };
+        }
+    </script>
 @endsection
