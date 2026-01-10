@@ -111,8 +111,22 @@ class InputDataController extends Controller
   // --- HARI ---
   public function indexHari()
   {
-    $hari = Hari::all();
-    return view('pages.master-data.hari', compact('hari'));
+    return view('pages.master-data.hari');
+  }
+
+  public function getHariData()
+  {
+    $hari = Hari::orderBy('id', 'asc')->get();
+
+    $formattedData = $hari->map(function ($h) {
+      return [
+        'id' => $h->id,
+        'name' => $h->nama_hari,
+        'status' => $h->status
+      ];
+    });
+
+    return response()->json($formattedData);
   }
 
   public function storeHari(Request $request)
@@ -130,10 +144,13 @@ class InputDataController extends Controller
 
   public function updateHari(Request $request, $id)
   {
-    $request->validate(['nama_hari' => 'required|string|max:255']);
+    $request->validate([
+      'nama_hari' => 'required|string|max:255',
+      'status' => 'nullable|in:Active,Inactive'
+    ]);
     $hari = Hari::findOrFail($id);
     $hari->update($request->all());
-    $this->logActivity('Data Hari', 'Mengubah data Hari : ' . $hari->nama_hari);
+    $this->logActivity('Data Hari', 'Mengubah data Hari : ' . $hari->nama_hari . ' menjadi ' . ($hari->status ?? 'Active'));
     return response()->json(['message' => 'Hari updated successfully', 'data' => $hari]);
   }
 
@@ -264,29 +281,49 @@ class InputDataController extends Controller
   // --- RUANGAN ---
   public function indexRuangan()
   {
-    $ruangan = Ruangan::all();
-    return view('pages.master-data.ruangan', compact('ruangan'));
+    return view('pages.master-data.ruangan');
+  }
+
+  public function getRuanganData()
+  {
+    $ruangan = Ruangan::orderBy('id', 'desc')->get();
+
+    $formattedData = $ruangan->map(function ($room) {
+      return [
+        'id' => $room->id,
+        'name' => $room->nama_ruangan,
+        'status' => $room->status
+      ];
+    });
+
+    return response()->json($formattedData);
   }
 
   public function storeRuangan(Request $request)
   {
-    $request->validate(['nama_ruangan' => 'required|string|max:255']);
-    $ruangan = Ruangan::create($request->all());
+    $request->validate([
+      'nama_ruangan' => 'required|string|max:255',
+      'status' => 'nullable|in:Active,Inactive'
+    ]);
+
+    $data = $request->all();
+    $data['status'] = $data['status'] ?? 'Active';
+
+    $ruangan = Ruangan::create($data);
     $this->logActivity('Data Ruangan', 'Menambah Data Ruangan : ' . $ruangan->nama_ruangan);
     return response()->json(['message' => 'Ruangan created successfully', 'data' => $ruangan], 201);
   }
 
-  public function showRuangan($id)
-  {
-    return response()->json(Ruangan::findOrFail($id));
-  }
-
   public function updateRuangan(Request $request, $id)
   {
-    $request->validate(['nama_ruangan' => 'required|string|max:255']);
+    $request->validate([
+      'nama_ruangan' => 'required|string|max:255',
+      'status' => 'nullable|in:Active,Inactive'
+    ]);
+
     $ruangan = Ruangan::findOrFail($id);
     $ruangan->update($request->all());
-    $this->logActivity('Data Ruangan', 'Mengubah data Ruangan : ' . $ruangan->nama_ruangan);
+    $this->logActivity('Data Ruangan', 'Mengubah Data Ruangan : ' . $ruangan->nama_ruangan);
     return response()->json(['message' => 'Ruangan updated successfully', 'data' => $ruangan]);
   }
 
@@ -297,5 +334,9 @@ class InputDataController extends Controller
     $ruangan->delete();
     $this->logActivity('Data Ruangan', 'Menghapus Data Ruangan : ' . $namaRuangan);
     return response()->json(['message' => 'Ruangan deleted successfully']);
+  }
+  public function showRuangan($id)
+  {
+    return response()->json(Ruangan::findOrFail($id));
   }
 }

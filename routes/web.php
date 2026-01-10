@@ -48,6 +48,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/jam/{id}', 'destroyJam')->name('jam.destroy');
 
         // Ruangan
+        Route::get('/ruangan/data', 'getRuanganData')->name('ruangan.data');
         Route::get('/ruangan', 'indexRuangan')->name('ruangan.index');
         Route::post('/ruangan', 'storeRuangan')->name('ruangan.store');
         Route::get('/ruangan/{id}', 'showRuangan')->name('ruangan.show');
