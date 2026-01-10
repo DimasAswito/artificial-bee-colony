@@ -247,19 +247,21 @@
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             Status
                         </label>
-                        <div class="flex items-center gap-3 mt-2">
-                             <div 
-                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2" 
-                                :class="form.status === 'Active' ? 'bg-brand-500' : 'bg-gray-200 dark:bg-gray-700'"
-                                @click="form.status = (form.status === 'Active' ? 'Inactive' : 'Active')"
-                            >
-                                <span class="sr-only">Use setting</span>
-                                <span 
-                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" 
-                                    :class="form.status === 'Active' ? 'translate-x-5' : 'translate-x-0'"
-                                ></span>
+                        <div class="flex items-center gap-3">
+                            <div>
+                                <input type="checkbox" id="status-switch" class="sr-only" 
+                                    :checked="form.status === 'Active'" 
+                                    @change="form.status = (form.status === 'Active' ? 'Inactive' : 'Active')">
+                                <label for="status-switch" 
+                                    class="flex items-center cursor-pointer select-none text-theme-sm text-gray-600 dark:text-gray-400">
+                                    <div class="relative">
+                                        <div class="block h-6 w-10 rounded-full bg-gray-200 dark:bg-gray-700" :class="{ '!bg-brand-500': form.status === 'Active' }"></div>
+                                        <div class="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition" 
+                                            :class="{ 'translate-x-full': form.status === 'Active' }"></div>
+                                    </div>
+                                    <span class="ml-3" x-text="form.status"></span>
+                                </label>
                             </div>
-                            <span class="text-sm text-gray-700 dark:text-gray-400" x-text="form.status"></span>
                         </div>
                     </div>
                 </div>

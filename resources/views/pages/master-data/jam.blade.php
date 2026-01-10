@@ -3,20 +3,20 @@
 @section('content')
     <x-common.page-breadcrumb pageTitle="Data Jam" />
 
-    <div class="space-y-6">
+    <div class="space-y-6" x-data="jamPageData()">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Card 1: Input Data Jam -->
             <div class="lg:col-span-2">
                 <x-common.component-card title="Input Data Jam">
-                    <form>
+                    <form @submit.prevent="saveJam">
                         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <!-- Jam Mulai -->
                             <div>
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Jam Mulai
+                                    Jam Mulai <span class="text-red-500">*</span>
                                 </label>
                                 <div class="relative">
-                                    <input type="time" placeholder="00:00" onclick="this.showPicker()"
+                                    <input type="time" x-model="form.jam_mulai" onclick="this.showPicker()"
                                         class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 pl-4 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                     <span class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400">
                                         <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"
@@ -32,10 +32,10 @@
                             <!-- Jam Selesai -->
                              <div>
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Jam Selesai
+                                    Jam Selesai <span class="text-red-500">*</span>
                                 </label>
                                 <div class="relative">
-                                    <input type="time" placeholder="00:00" onclick="this.showPicker()"
+                                    <input type="time" x-model="form.jam_selesai" onclick="this.showPicker()"
                                         class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 pl-4 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                                     <span class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400">
                                         <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"
@@ -50,8 +50,9 @@
                         </div>
 
                          <div class="mt-4">
-                            <button type="button" class="flex w-full justify-center rounded-lg bg-brand-500 p-3 font-medium text-gray-100 hover:bg-opacity-90">
-                                Simpan
+                            <button type="submit" class="flex w-full justify-center rounded-lg bg-brand-500 p-3 font-medium text-gray-100 hover:bg-opacity-90" :disabled="isLoading">
+                                <span x-show="!isLoading">Simpan</span>
+                                <span x-show="isLoading">Menyimpan...</span>
                             </button>
                         </div>
                     </form>
@@ -72,7 +73,10 @@
                     <div class="flex items-end justify-between mt-5">
                         <div>
                             <span class="text-sm text-gray-500 dark:text-gray-400">Data Slot Jam</span>
-                            <h4 class="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">8</h4>
+                            <div class="flex items-baseline gap-1 mt-2">
+                                <h4 class="font-bold text-gray-800 text-title-sm dark:text-white/90" x-text="activeSlotJamCount"></h4>
+                                <span class="text-sm text-gray-400" x-text="'/' + filteredData.length + ' Slot Jam'"></span>
+                            </div>
                         </div>
                         
                         <span class="flex items-center gap-1 rounded-full bg-success-50 py-0.5 pl-2 pr-2.5 text-sm font-medium text-success-600 dark:bg-success-500/15 dark:text-success-500">
@@ -87,97 +91,7 @@
         </div>
 
         <!-- Card 2: Data Jam Table (Basic Table 3 Style) -->
-        <div x-data="{
-            timeSlots: [
-                {
-                    id: 1,
-                    start: '07:30',
-                    end: '08:20',
-                    status: 'Active',
-                },
-                {
-                    id: 2,
-                    start: '08:20',
-                    end: '09:10',
-                    status: 'Active',
-                },
-                {
-                    id: 3,
-                    start: '09:10',
-                    end: '10:00',
-                    status: 'Active',
-                },
-                 {
-                    id: 4,
-                    start: '10:00',
-                    end: '10:50',
-                    status: 'Active',
-                },
-                {
-                    id: 5,
-                    start: '10:50',
-                    end: '11:40',
-                    status: 'Active',
-                },
-                 {
-                    id: 6,
-                    start: '11:40',
-                    end: '12:30',
-                    status: 'Inactive',
-                },
-            ],
-            itemsPerPage: 5,
-            currentPage: 1,
-            dropdownOpen: null,
-            get totalPages() {
-                return Math.ceil(this.timeSlots.length / this.itemsPerPage);
-            },
-            get paginatedData() {
-                const start = (this.currentPage - 1) * this.itemsPerPage;
-                const end = start + this.itemsPerPage;
-                return this.timeSlots.slice(start, end);
-            },
-            get displayedPages() {
-                const range = [];
-                for (let i = 1; i <= this.totalPages; i++) {
-                    if (
-                        i === 1 ||
-                        i === this.totalPages ||
-                        (i >= this.currentPage - 1 && i <= this.currentPage + 1)
-                    ) {
-                        range.push(i);
-                    } else if (range[range.length - 1] !== '...') {
-                        range.push('...');
-                    }
-                }
-                return range;
-            },
-            prevPage() {
-                if (this.currentPage > 1) {
-                    this.currentPage--;
-                }
-            },
-            nextPage() {
-                if (this.currentPage < this.totalPages) {
-                    this.currentPage++;
-                }
-            },
-            goToPage(page) {
-                if (typeof page === 'number' && page >= 1 && page <= this.totalPages) {
-                    this.currentPage = page;
-                }
-            },
-            getStatusClass(status) {
-                const classes = {
-                    'Active': 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-500',
-                    'Inactive': 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500',
-                };
-                return classes[status] || 'bg-gray-50 text-gray-600';
-            },
-            toggleDropdown(id) {
-                this.dropdownOpen = this.dropdownOpen === id ? null : id;
-            }
-        }">
+        <div>
             <div class="rounded-2xl border border-gray-200 bg-white pt-4 dark:border-gray-800 dark:bg-white/[0.03]">
                 <!-- Header -->
                 <div class="flex flex-col gap-2 px-5 mb-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -185,16 +99,14 @@
                         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Data Jam</h3>
                     </div>
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <form>
-                            <div class="relative">
-                                <button type="button" class="absolute -translate-y-1/2 left-4 top-1/2">
-                                    <svg class="fill-gray-500 dark:fill-gray-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M3.04199 9.37381C3.04199 5.87712 5.87735 3.04218 9.37533 3.04218C12.8733 3.04218 15.7087 5.87712 15.7087 9.37381C15.7087 12.8705 12.8733 15.7055 9.37533 15.7055C5.87735 15.7055 3.04199 12.8705 3.04199 9.37381ZM9.37533 1.54218C5.04926 1.54218 1.54199 5.04835 1.54199 9.37381C1.54199 13.6993 5.04926 17.2055 9.37533 17.2055C11.2676 17.2055 13.0032 16.5346 14.3572 15.4178L17.1773 18.2381C17.4702 18.531 17.945 18.5311 18.2379 18.2382C18.5308 17.9453 18.5309 17.4704 18.238 17.1775L15.4182 14.3575C16.5367 13.0035 17.2087 11.2671 17.2087 9.37381C17.2087 5.04835 13.7014 1.54218 9.37533 1.54218Z" fill=""/>
-                                    </svg>
-                                </button>
-                                <input type="text" placeholder="Search..." class="h-[42px] w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pl-[42px] pr-4 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800 xl:w-[300px]"/>
-                            </div>
-                        </form>
+                        <div class="relative">
+                            <button type="button" class="absolute -translate-y-1/2 left-4 top-1/2">
+                                <svg class="fill-gray-500 dark:fill-gray-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.04199 9.37381C3.04199 5.87712 5.87735 3.04218 9.37533 3.04218C12.8733 3.04218 15.7087 5.87712 15.7087 9.37381C15.7087 12.8705 12.8733 15.7055 9.37533 15.7055C5.87735 15.7055 3.04199 12.8705 3.04199 9.37381ZM9.37533 1.54218C5.04926 1.54218 1.54199 5.04835 1.54199 9.37381C1.54199 13.6993 5.04926 17.2055 9.37533 17.2055C11.2676 17.2055 13.0032 16.5346 14.3572 15.4178L17.1773 18.2381C17.4702 18.531 17.945 18.5311 18.2379 18.2382C18.5308 17.9453 18.5309 17.4704 18.238 17.1775L15.4182 14.3575C16.5367 13.0035 17.2087 11.2671 17.2087 9.37381C17.2087 5.04835 13.7014 1.54218 9.37533 1.54218Z" fill=""/>
+                                </svg>
+                            </button>
+                            <input type="text" x-model="search" placeholder="Search..." class="h-[42px] w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pl-[42px] pr-4 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-blue-800 xl:w-[300px]"/>
+                        </div>
                     </div>
                 </div>
 
@@ -207,9 +119,7 @@
                                     <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Jam Mulai</th>
                                     <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Jam Selesai</th>
                                     <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Status</th>
-                                    <th scope="col" class="relative px-4 py-3 capitalize">
-                                        <span class="sr-only">Actions</span>
-                                    </th>
+                                    <th scope="col" class="px-4 py-3 font-normal text-right text-gray-500 text-theme-sm dark:text-gray-400">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -218,38 +128,28 @@
                                         <td class="py-4 whitespace-nowrap">
                                             <div class="flex items-center">
                                                 <div class="ml-4">
-                                                    <div class="text-sm font-medium text-gray-900 dark:text-white" x-text="time.start"></div>
+                                                    <div class="text-sm font-bold text-gray-800 dark:text-white" x-text="time.start"></div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td class="px-4 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-gray-500 dark:text-gray-400" x-text="time.end"></div>
+                                            <div class="text-sm font-bold text-gray-800 dark:text-white" x-text="time.end"></div>
                                         </td>
                                         <td class="px-4 py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(time.status)" x-text="time.status"></span>
                                         </td>
                                         <td class="px-4 py-4 text-sm font-medium text-right whitespace-nowrap">
-                                            <div class="flex justify-center relative">
-                                                <x-common.table-dropdown>
-                                                    <x-slot name="button">
-                                                        <button type="button" class="text-gray-500 dark:text-gray-400">
-                                                            <svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" d="M5.99902 10.245C6.96552 10.245 7.74902 11.0285 7.74902 11.995V12.005C7.74902 12.9715 6.96552 13.755 5.99902 13.755C5.03253 13.755 4.24902 12.9715 4.24902 12.005V11.995C4.24902 11.0285 5.03253 10.245 5.99902 10.245ZM17.999 10.245C18.9655 10.245 19.749 11.0285 19.749 11.995V12.005C19.749 12.9715 18.9655 13.755 17.999 13.755C17.0325 13.755 16.249 12.9715 16.249 12.005V11.995C16.249 11.0285 17.0325 10.245 17.999 10.245ZM13.749 11.995C13.749 11.0285 12.9655 10.245 11.999 10.245C11.0325 10.245 10.249 11.0285 10.249 11.995V12.005C10.249 12.9715 11.0325 13.755 11.999 13.755C12.9655 13.755 13.749 12.9715 13.749 12.005V11.995Z" fill="currentColor" />
-                                                            </svg>
-                                                        </button>
-                                                    </x-slot>
-                
-                                                    <x-slot name="content">
-                                                        <a href="#" class="flex w-full px-3 py-2 font-medium text-left text-gray-500 rounded-lg text-theme-xs hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300" role="menuitem">
-                                                            View Details
-                                                        </a>
-                                                        <a href="#" class="flex w-full px-3 py-2 font-medium text-left text-gray-500 rounded-lg text-theme-xs hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300" role="menuitem">
-                                                            Edit
-                                                        </a>
-                                                        <a href="#" class="flex w-full px-3 py-2 font-medium text-left text-gray-500 rounded-lg text-theme-xs hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300" role="menuitem">
-                                                            Delete
-                                                        </a>
-                                                    </x-slot>
-                                                </x-common.table-dropdown>
+                                            <div class="flex items-center justify-end gap-2">
+                                                <button @click="openEditModal(time)" class="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400">
+                                                    <svg class="stroke-current" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M15.2322 5.23223L18.7677 8.76777M16.7322 3.73223C17.7085 2.75592 19.2915 2.75592 20.2678 3.73223C21.2441 4.70854 21.2441 6.29146 20.2678 7.26777L6.5 21.0355H3V17.5355L16.7322 3.73223Z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </svg>
+                                                </button>
+                                                <button @click="confirmDelete(time.id)" class="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400">
+                                                    <svg class="stroke-current" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </svg>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -293,51 +193,11 @@
             </div>
         </div>
 
-        <!-- Card 3: History Transaksi (Basic Table 4 Style) -->
-        @php
-            $history = [
-                [
-                    'user' => 'Admin (You)',
-                    'action' => 'Added New Time Slot',
-                    'detail' => '07:30 - 08:20',
-                    'time' => '10 mins ago',
-                    'status' => 'Success',
-                ],
-                [
-                    'user' => 'Admin (You)',
-                    'action' => 'Updated Time Slot',
-                    'detail' => '11:40 - 12:30',
-                    'time' => '1 hour ago',
-                    'status' => 'Pending',
-                ],
-                 [
-                    'user' => 'System',
-                    'action' => 'Automated Sync',
-                    'detail' => 'Time Configuration',
-                    'time' => '5 hours ago',
-                    'status' => 'Failed',
-                ],
-            ];
-            
-            function getHistoryStatusClass($status) {
-                $baseClasses = 'rounded-full px-2 text-theme-xs font-medium';
-                switch ($status) {
-                    case 'Success':
-                        return "$baseClasses bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500";
-                    case 'Pending':
-                        return "$baseClasses bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400";
-                    case 'Failed':
-                        return "$baseClasses bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500";
-                    default:
-                        return $baseClasses;
-                }
-            }
-        @endphp
-
+        <!-- Card 3: History Transaksi -->
         <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
             <div class="flex justify-between gap-2 mb-4 sm:items-center">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Riwayat Transaksi</h3>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Histori Data Slot Jam</h3>
                 </div>
             </div>
 
@@ -345,72 +205,365 @@
                 <table class="min-w-full">
                     <thead>
                         <tr class="border-gray-100 border-y dark:border-gray-800">
-                           <th class="py-3 font-normal">
-                                <div class="flex items-center">
-                                    <p class="text-gray-500 text-theme-sm dark:text-gray-400">User</p>
-                                </div>
+                           <th class="py-3 font-normal text-left">
+                                <p class="text-gray-500 text-theme-sm dark:text-gray-400">User</p>
                             </th>
-                            <th class="py-3 font-normal">
-                                <div class="flex items-center">
-                                    <p class="text-gray-500 text-theme-sm dark:text-gray-400">Action</p>
-                                </div>
+                            <th class="py-3 font-normal text-left">
+                                <p class="text-gray-500 text-theme-sm dark:text-gray-400">Action</p>
                             </th>
-                             <th class="py-3 font-normal">
-                                <div class="flex items-center">
-                                    <p class="text-gray-500 text-theme-sm dark:text-gray-400">Time</p>
-                                </div>
-                            </th>
-                            <th class="py-3 font-normal">
-                                <div class="flex items-center">
-                                    <p class="text-gray-500 text-theme-sm dark:text-gray-400">Status</p>
-                                </div>
+                             <th class="py-3 font-normal text-left">
+                                <p class="text-gray-500 text-theme-sm dark:text-gray-400">Time</p>
                             </th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        @foreach ($history as $h)
+                        <template x-for="log in logs" :key="log.time">
                             <tr>
                                 <td class="py-3">
                                     <div class="flex items-center gap-[18px]">
-                                        <div>
-                                            <p class="text-gray-700 text-theme-sm dark:text-gray-400">
-                                                {{ $h['user'] }}
-                                            </p>
-                                        </div>
+                                        <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="log.user"></p>
                                     </div>
                                 </td>
                                 <td class="py-3">
                                     <div class="flex items-center">
-                                       <div class="truncate">
-                                            <p class="mb-0.5 truncate text-theme-sm font-medium text-gray-700 dark:text-gray-400">
-                                                {{ $h['action'] }}
-                                            </p>
-                                            <span class="text-gray-500 text-theme-xs dark:text-gray-400">
-                                                {{ $h['detail'] }}
-                                            </span>
-                                        </div>
+                                       <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="log.action"></p>
                                     </div>
                                 </td>
                                 <td class="py-3">
                                      <div class="flex items-center">
-                                        <p class="text-gray-700 text-theme-sm dark:text-gray-400">
-                                                {{ $h['time'] }}
-                                        </p>
-                                    </div>
-                                </td>
-                                <td class="py-3">
-                                    <div class="flex items-center">
-                                        <span class="{{ getHistoryStatusClass($h['status']) }}">
-                                            {{ $h['status'] }}
-                                        </span>
+                                        <p class="text-gray-700 text-theme-sm dark:text-gray-400" x-text="log.time"></p>
                                     </div>
                                 </td>
                             </tr>
-                        @endforeach
+                        </template>
+                         <tr x-show="logs.length === 0">
+                            <td colspan="3" class="py-4 text-center text-gray-500 dark:text-gray-400">
+                                Tidak ada log aktivitas terbaru.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
+    <!-- Edit Modal -->
+    <div x-show="editModalOpen" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0">
+        
+        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800"
+             @click.away="closeModal"
+             x-transition:enter="transition ease-out duration-200 transform"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150 transform"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+             
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Edit Jam</h3>
+                <button @click="closeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form @submit.prevent="saveJam">
+                <div class="space-y-4">
+                    <!-- Jam Mulai -->
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Jam Mulai <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="time" x-model="form.jam_mulai" onclick="this.showPicker()"
+                                class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 pl-4 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
+                            <span class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                                <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M3.04175 9.99984C3.04175 6.15686 6.1571 3.0415 10.0001 3.0415C13.8431 3.0415 16.9584 6.15686 16.9584 9.99984C16.9584 13.8428 13.8431 16.9582 10.0001 16.9582C6.1571 16.9582 3.04175 13.8428 3.04175 9.99984ZM10.0001 1.5415C5.32867 1.5415 1.54175 5.32843 1.54175 9.99984C1.54175 14.6712 5.32867 18.4582 10.0001 18.4582C14.6715 18.4582 18.4584 14.6712 18.4584 9.99984C18.4584 5.32843 14.6715 1.5415 10.0001 1.5415ZM9.99998 10.7498C9.58577 10.7498 9.24998 10.4141 9.24998 9.99984V5.4165C9.24998 5.00229 9.58577 4.6665 9.99998 4.6665C10.4142 4.6665 10.75 5.00229 10.75 5.4165V9.24984H13.3334C13.7476 9.24984 14.0834 9.58562 14.0834 9.99984C14.0834 10.4141 13.7476 10.7498 13.3334 10.7498H10.0001H9.99998Z"
+                                        fill="" />
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Jam Selesai -->
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Jam Selesai <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="time" x-model="form.jam_selesai" onclick="this.showPicker()"
+                                class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 pl-4 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
+                            <span class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                                <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M3.04175 9.99984C3.04175 6.15686 6.1571 3.0415 10.0001 3.0415C13.8431 3.0415 16.9584 6.15686 16.9584 9.99984C16.9584 13.8428 13.8431 16.9582 10.0001 16.9582C6.1571 16.9582 3.04175 13.8428 3.04175 9.99984ZM10.0001 1.5415C5.32867 1.5415 1.54175 5.32843 1.54175 9.99984C1.54175 14.6712 5.32867 18.4582 10.0001 18.4582C14.6715 18.4582 18.4584 14.6712 18.4584 9.99984C18.4584 5.32843 14.6715 1.5415 10.0001 1.5415ZM9.99998 10.7498C9.58577 10.7498 9.24998 10.4141 9.24998 9.99984V5.4165C9.24998 5.00229 9.58577 4.6665 9.99998 4.6665C10.4142 4.6665 10.75 5.00229 10.75 5.4165V9.24984H13.3334C13.7476 9.24984 14.0834 9.58562 14.0834 9.99984C14.0834 10.4141 13.7476 10.7498 13.3334 10.7498H10.0001H9.99998Z"
+                                        fill="" />
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Toggle -->
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                        Status
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <input type="checkbox" id="status-switch" class="sr-only" 
+                                :checked="form.status === 'Active'" 
+                                @change="form.status = (form.status === 'Active' ? 'Inactive' : 'Active')">
+                            <label for="status-switch" 
+                                class="flex items-center cursor-pointer select-none text-theme-sm text-gray-600 dark:text-gray-400">
+                                <div class="relative">
+                                    <div class="block h-6 w-10 rounded-full bg-gray-200 dark:bg-gray-700" :class="{ '!bg-brand-500': form.status === 'Active' }"></div>
+                                    <div class="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition" 
+                                        :class="{ 'translate-x-full': form.status === 'Active' }"></div>
+                                </div>
+                                <span class="ml-3" x-text="form.status"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" @click="closeModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function jamPageData() {
+            return {
+                timeSlots: [],
+                logs: [],
+                search: '',
+                itemsPerPage: 5,
+                currentPage: 1,
+                editModalOpen: false,
+                isEditing: false,
+                isLoading: false,
+                form: {
+                    id: null,
+                    jam_mulai: '',
+                    jam_selesai: '',
+                    status: 'Active'
+                },
+
+                init() {
+                    this.fetchJam();
+                    this.fetchLogs();
+                },
+
+                async fetchJam() {
+                     try {
+                        const response = await fetch("{{ route('jam.data') }}");
+                        if (!response.ok) throw new Error('Failed to fetch data');
+                        this.timeSlots = await response.json();
+                    } catch (error) {
+                         console.error('Error fetching jam data:', error);
+                         Swal.fire('Error', 'Gagal memuat data jam.', 'error');
+                    }
+                },
+
+                get filteredData() {
+                    if (!this.search) return this.timeSlots;
+                    return this.timeSlots.filter(t => 
+                        t.start.includes(this.search) || 
+                        t.end.includes(this.search)
+                    );
+                },
+
+                get totalPages() {
+                   return Math.ceil(this.filteredData.length / this.itemsPerPage);
+                },
+
+                get paginatedData() {
+                    const start = (this.currentPage - 1) * this.itemsPerPage;
+                    const end = start + this.itemsPerPage;
+                    return this.filteredData.slice(start, end);
+                },
+
+                get displayedPages() {
+                    const range = [];
+                    for (let i = 1; i <= this.totalPages; i++) {
+                        if (
+                            i === 1 ||
+                            i === this.totalPages ||
+                            (i >= this.currentPage - 1 && i <= this.currentPage + 1)
+                        ) {
+                            range.push(i);
+                        } else if (range[range.length - 1] !== '...') {
+                            range.push('...');
+                        }
+                    }
+                    return range;
+                },
+                
+                get activeSlotJamCount() {
+                    return this.timeSlots.filter(t => t.status === 'Active').length;
+                },
+
+                async fetchLogs() {
+                     try {
+                        const response = await fetch("{{ route('logs.data') }}?type=Data Jam");
+                        if (!response.ok) throw new Error('Failed to fetch logs');
+                        this.logs = await response.json();
+                    } catch (error) {
+                        console.error('Error fetching logs:', error);
+                    }
+                },
+
+                prevPage() {
+                    if (this.currentPage > 1) this.currentPage--;
+                },
+                nextPage() {
+                    if (this.currentPage < this.totalPages) this.currentPage++;
+                },
+                goToPage(page) {
+                    if (typeof page === 'number' && page >= 1 && page <= this.totalPages) this.currentPage = page;
+                },
+
+                getStatusClass(status) {
+                    if (status === 'Active') {
+                        return 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500';
+                    } else {
+                        return 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500';
+                    }
+                },
+
+                openEditModal(time) {
+                    this.isEditing = true;
+                    this.form = { ...time, jam_mulai: time.start, jam_selesai: time.end, status: time.status };
+                    this.editModalOpen = true;
+                },
+
+                closeModal() {
+                    this.editModalOpen = false;
+                    this.isEditing = false;
+                    this.resetForm();
+                },
+
+                resetForm() {
+                    this.form = {
+                        id: null,
+                        jam_mulai: '',
+                        jam_selesai: '',
+                        status: 'Active'
+                    };
+                },
+
+                async saveJam() {
+                    const url = this.isEditing ? `/jam/${this.form.id}` : "{{ route('jam.store') }}";
+                    const method = this.isEditing ? 'PUT' : 'POST';
+                    this.isLoading = true;
+
+                    try {
+                        const response = await fetch(url, {
+                            method: method,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify(this.form)
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok) throw new Error(result.message || 'Something went wrong');
+
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'bottom-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+
+                        Toast.fire({
+                            icon: 'success',
+                            title: result.message
+                        });
+
+                        this.closeModal();
+                        if (!this.isEditing) {
+                            this.resetForm();
+                        }
+                        this.fetchJam();
+                        this.fetchLogs();
+
+                    } catch (error) {
+                        console.error('Error saving jam:', error);
+                        Swal.fire('Error', error.message, 'error');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                confirmDelete(id) {
+                    Swal.fire({
+                        title: 'Apakah anda yakin?',
+                        text: "Data yang dihapus tidak dapat dikembalikan!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Ya, Hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            try {
+                                const response = await fetch(`/jam/${id}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                    }
+                                });
+
+                                const result = await response.json();
+
+                                if (!response.ok) throw new Error(result.message);
+
+                                const Toast = Swal.mixin({
+                                    toast: true,
+                                    position: 'bottom-end',
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                    timerProgressBar: true
+                                });
+
+                                Toast.fire({
+                                    icon: 'success',
+                                    title: result.message
+                                });
+
+                                this.fetchJam();
+                                this.fetchLogs();
+                            } catch (error) {
+                                Swal.fire('Error', error.message, 'error');
+                            }
+                        }
+                    })
+                }
+            };
+        }
+    </script>
 @endsection

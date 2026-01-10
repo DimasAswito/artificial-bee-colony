@@ -166,8 +166,23 @@ class InputDataController extends Controller
   // --- JAM ---
   public function indexJam()
   {
-    $jam = Jam::all();
-    return view('pages.master-data.jam', compact('jam'));
+    return view('pages.master-data.jam');
+  }
+
+  public function getJamData()
+  {
+    $jam = Jam::orderBy('jam_mulai', 'asc')->get();
+
+    $formattedData = $jam->map(function ($j) {
+      return [
+        'id' => $j->id,
+        'start' => \Carbon\Carbon::parse($j->jam_mulai)->format('H:i'),
+        'end' => \Carbon\Carbon::parse($j->jam_selesai)->format('H:i'),
+        'status' => $j->status
+      ];
+    });
+
+    return response()->json($formattedData);
   }
 
   public function storeJam(Request $request)
@@ -175,8 +190,13 @@ class InputDataController extends Controller
     $request->validate([
       'jam_mulai' => 'required',
       'jam_selesai' => 'required',
+      'status' => 'nullable|in:Active,Inactive'
     ]);
-    $jam = Jam::create($request->all());
+
+    $data = $request->all();
+    $data['status'] = $data['status'] ?? 'Active';
+
+    $jam = Jam::create($data);
     $this->logActivity('Data Jam', 'Menambah Data Jam : ' . $jam->jam_mulai . ' - ' . $jam->jam_selesai);
     return response()->json(['message' => 'Jam created successfully', 'data' => $jam], 201);
   }
@@ -191,6 +211,7 @@ class InputDataController extends Controller
     $request->validate([
       'jam_mulai' => 'required',
       'jam_selesai' => 'required',
+      'status' => 'nullable|in:Active,Inactive'
     ]);
     $jam = Jam::findOrFail($id);
     $jam->update($request->all());

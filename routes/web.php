@@ -42,6 +42,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/hari/{id}', 'destroyHari')->name('hari.destroy');
 
         // Jam
+        Route::get('/jam/data', 'getJamData')->name('jam.data');
         Route::get('/jam', 'indexJam')->name('jam.index');
         Route::post('/jam', 'storeJam')->name('jam.store');
         Route::get('/jam/{id}', 'showJam')->name('jam.show');
