@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/mata-kuliah/{id}', 'destroyMataKuliah')->name('mata-kuliah.destroy');
 
         // Hari
+        Route::get('/hari/data', 'getHariData')->name('hari.data');
         Route::get('/hari', 'indexHari')->name('hari.index');
         Route::post('/hari', 'storeHari')->name('hari.store');
         Route::get('/hari/{id}', 'showHari')->name('hari.show');
