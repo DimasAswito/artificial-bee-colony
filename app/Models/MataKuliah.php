@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class MataKuliah extends Model
 {
@@ -16,6 +16,7 @@ class MataKuliah extends Model
     protected $fillable = [
         'nama_matkul',
         'sks',
+        'semester',
         'dosen_id',
         'status',
     ];

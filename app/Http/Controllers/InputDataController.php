@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Dosen;
-use App\Models\Hari;
 use App\Models\Jam;
+use App\Models\Hari;
 use App\Models\Log;
-use App\Models\MataKuliah;
+use App\Models\Dosen;
 use App\Models\Ruangan;
+use App\Models\MataKuliah;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -244,6 +244,7 @@ class InputDataController extends Controller
         'id' => $mk->id,
         'name' => $mk->nama_matkul,
         'sks' => $mk->sks,
+        'semester' => $mk->semester,
         'dosen' => $mk->dosen ? $mk->dosen->nama_dosen : '-',
         'dosen_id' => $mk->dosen_id, // Needed for edit form
         'status' => $mk->status
@@ -258,6 +259,7 @@ class InputDataController extends Controller
     $request->validate([
       'nama_matkul' => 'required|string|max:255',
       'sks' => 'required|integer',
+      'semester' => 'required|string',
       'dosen_id' => 'nullable|exists:dosen,id',
       'status' => 'nullable|in:Active,Inactive'
     ]);
@@ -281,6 +283,7 @@ class InputDataController extends Controller
     $request->validate([
       'nama_matkul' => 'required|string|max:255',
       'sks' => 'required|integer',
+      'semester' => 'required|string',
       'dosen_id' => 'nullable|exists:dosen,id',
       'status' => 'nullable|in:Active,Inactive'
     ]);
