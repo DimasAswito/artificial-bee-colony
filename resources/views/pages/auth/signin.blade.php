@@ -25,6 +25,8 @@
                             </p>
                         </div>
                         <div>
+                            <!-- Google Sign In Commented Out -->
+                            {{--
                             <div class="grid grid-cols-1 gap-3">
                                 <a href="{{ route('auth.google.redirect', ['type' => 'signin']) }}"
                                     class="inline-flex items-center justify-center gap-3 rounded-lg bg-gray-100 px-7 py-3 text-sm font-normal text-gray-700 transition-colors hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10 w-full">
@@ -54,6 +56,7 @@
                                     <span class="bg-white p-2 text-gray-400 sm:px-5 sm:py-2 dark:bg-gray-900">Or</span>
                                 </div>
                             </div>
+                            --}}
                             <form action="{{ route('signin.perform') }}" method="POST">
                                 @csrf
                                 <div class="space-y-5">
@@ -91,9 +94,11 @@
                                     </div>
                                     <!-- Checkbox -->
                                     <div class="flex items-center justify-end">
+                                        {{--
                                         <a href="/reset-password" class="text-brand-500 hover:text-brand-600 dark:text-brand-400 text-sm">
                                             Forgot password?
                                         </a>
+                                        --}}
                                     </div>
                                     <!-- Button -->
                                     <div>
@@ -104,12 +109,12 @@
                                     </div>
                                 </div>
                             </form>
-                            <div class="mt-5">
+                            {{-- <div class="mt-5">
                                 <p class="text-center text-sm font-normal text-gray-700 sm:text-start dark:text-gray-400">
                                     Don't have an account?
                                     <a href="/signup" class="text-brand-500 hover:text-brand-600 dark:text-brand-400">Sign Up</a>
                                 </p>
-                            </div>
+                            </div> --}}
                         </div>
                     </div>
                 </div>

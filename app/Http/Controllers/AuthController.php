@@ -26,88 +26,35 @@ class AuthController extends Controller
         ]);
 
         try {
-            // 2. Sign up with Supabase Auth
-            $supabaseUrl = env('VITE_SUPABASE_URL');
-            $supabaseKey = env('VITE_SUPABASE_ANON_KEY');
-
-            $response = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Content-Type' => 'application/json',
-            ])->post("{$supabaseUrl}/auth/v1/signup", [
+            // 2. Create user in local database
+            User::create([
+                'name' => $request->name,
                 'email' => $request->email,
-                'password' => $request->password,
-                'data' => [
-                    'name' => $request->name,
-                ],
+                'password' => Hash::make($request->password),
             ]);
 
-            if ($response->successful()) {
-                // 3. Create user in local database
-                // Supabase might require email confirmation, but we'll insert into our DB anyway
-                // to maintain the record.
-
-                $user = User::create([
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'password' => Hash::make($request->password), // Storing hashed password locally as well
-                ]);
-
-                // Optional: Login the user immediately or redirect to login
-                // For this requirement: "setelah berhasil masuk ke database. maka diarahkan ke halaman sign in"
-
-                return redirect()->route('signin')->with('success', 'Registration successful! Please sign in.');
-            } else {
-                // Handle Supabase errors
-                $error = $response->json();
-                return back()->withErrors(['email' => $error['msg'] ?? 'Registration failed with Supabase.'])->withInput();
-            }
+            return redirect()->route('signin')->with('success', 'Registration successful! Please sign in.');
         } catch (\Exception $e) {
-            return back()->withErrors(['email' => 'An error occurred: ' . $e->getMessage()])->withInput();
+            return back()->with('error', 'An error occurred: ' . $e->getMessage())->withInput();
         }
     }
 
     public function signin(Request $request)
     {
         // 1. Validate the request
-        $request->validate([
+        $credentials = $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
 
-        try {
-            // 2. Sign in with Supabase Auth
-            $supabaseUrl = env('VITE_SUPABASE_URL');
-            $supabaseKey = env('VITE_SUPABASE_ANON_KEY');
-
-            $response = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Content-Type' => 'application/json',
-            ])->post("{$supabaseUrl}/auth/v1/token?grant_type=password", [
-                'email' => $request->email,
-                'password' => $request->password,
-            ]);
-
-            if ($response->successful()) {
-                // 3. Login local user
-                $user = User::where('email', $request->email)->first();
-
-                if ($user) {
-                    Auth::login($user);
-                    return redirect()->route('dashboard')->with('success', 'Signed in successfully!');
-                } else {
-                    // This scenario happens if user exists in Supabase but not locally.
-                    return back()->with('error', 'Email atau password salah')->withInput();
-                }
-            } else {
-                // Handle Supabase Login errors
-                Log::error('Supabase Login Error:', $response->json());
-                $error = $response->json();
-                $errorMsg = $error['error_description'] ?? 'Email atau password salah';
-                return back()->with('error', $errorMsg)->withInput(); // Use 'error' flash for SweetAlert
-            }
-        } catch (\Exception $e) {
-            return back()->with('error', 'An error occurred during sign in: ' . $e->getMessage())->withInput();
+        // 2. Attempt login using local database
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            return redirect()->route('dashboard')->with('success', 'Signed in successfully!');
         }
+
+        // 3. Failed login
+        return back()->with('error', 'Email atau password salah')->withInput();
     }
 
     public function logout(Request $request)
