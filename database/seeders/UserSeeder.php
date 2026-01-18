@@ -18,6 +18,7 @@ class UserSeeder extends Seeder
             'name' => 'Admin Kampus',
             'email' => 'test@gmail.com',
             'password' => Hash::make('12345678'),
+            'role' => '00',
         ]);
     }
 }
