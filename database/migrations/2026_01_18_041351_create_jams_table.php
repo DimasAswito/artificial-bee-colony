@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('jam', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->time('jam_mulai')->nullable();
             $table->time('jam_selesai')->nullable();
             $table->string('status')->default('Active')->nullable();

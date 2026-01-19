@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mata_kuliah', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->string('nama_matkul');
             $table->string('semester');
             $table->integer('sks');
             // $table->foreignUuid('dosen_id')->nullable()->constrained('dosen')
-            $table->uuid('dosen_id')->nullable();
+            $table->foreignId('dosen_id')->nullable()->constrained('dosen');
             $table->string('status')->default('Active')->nullable();
             $table->timestamps();
         });

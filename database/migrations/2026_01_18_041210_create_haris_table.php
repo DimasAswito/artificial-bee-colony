@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('hari', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->text('nama_hari');
             $table->string('status')->default('Active')->nullable();
             $table->timestamps();
