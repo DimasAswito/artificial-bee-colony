@@ -17,18 +17,22 @@ class RuanganSeeder extends Seeder
             [
                 'nama_ruangan' => 'Aula',
                 'status' => 'Active',
+                'created_at' => now(),
             ],
             [
                 'nama_ruangan' => 'Ruang 101',
                 'status' => 'Active',
+                'created_at' => now(),
             ],
             [
                 'nama_ruangan' => 'Lab SKK',
                 'status' => 'Active',
+                'created_at' => now(),
             ],
             [
                 'nama_ruangan' => 'Lab RSI',
                 'status' => 'Active',
+                'created_at' => now(),
             ],
         ];
 

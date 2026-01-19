@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InputDataController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ABCController;
 
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
@@ -11,6 +12,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/', function () {
         return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
     })->name('dashboard');
+
+    Route::get('/generate-jadwal', [ABCController::class, 'index'])->name('generate.jadwal');
+    Route::post('/generate-jadwal/process', [ABCController::class, 'generate'])->name('generate.process');
+    Route::get('/riwayat-penjadwalan', [ABCController::class, 'riwayat'])->name('riwayat.index');
+    Route::get('/riwayat-penjadwalan/{id}', [ABCController::class, 'detail'])->name('riwayat.detail');
 
     // Input Data Routes (consolidated)
     Route::controller(InputDataController::class)->group(function () {

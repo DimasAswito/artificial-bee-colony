@@ -18,21 +18,25 @@ class JamSeeder extends Seeder
                 'jam_mulai' => '08:00',
                 'jam_selesai' => '10:00',
                 'status' => 'Active',
+                'created_at' => now(),
             ],
             [
                 'jam_mulai' => '10:00',
                 'jam_selesai' => '12:00',
                 'status' => 'Active',
+                'created_at' => now(),
             ],
             [
                 'jam_mulai' => '13:00',
                 'jam_selesai' => '15:00',
                 'status' => 'Active',
+                'created_at' => now(),
             ],
             [
                 'jam_mulai' => '15:00',
                 'jam_selesai' => '17:00',
                 'status' => 'Active',
+                'created_at' => now(),
             ],
         ];
 

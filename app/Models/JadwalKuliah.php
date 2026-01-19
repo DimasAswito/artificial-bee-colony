@@ -18,7 +18,6 @@ class JadwalKuliah extends Model
     'ruangan_id',
     'hari_id',
     'jam_id',
-    'kelas',
   ];
 
   public function riwayatPenjadwalan()

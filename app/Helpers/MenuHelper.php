@@ -26,7 +26,8 @@ class MenuHelper
             [
                 'name' => 'Buat Jadwal',
                 'icon' => 'forms',
-                'path' => '/form-elements',
+                // 'path' => '/form-elements',
+                'path' => '/generate-jadwal',
             ],
             [
                 'name' => 'Modifikasi Jadwal',
@@ -67,7 +68,8 @@ class MenuHelper
             [
                 'icon' => 'ui-elements',
                 'name' => 'Riwayat Jadwal',
-                'path' => '/profile',
+                // 'path' => '/profile',
+                'path' => '/riwayat-penjadwalan',
                 // 'subItems' => [
                 //     ['name' => 'Alerts', 'path' => '/alerts', 'pro' => false],
                 //     ['name' => 'Avatar', 'path' => '/avatars', 'pro' => false],
