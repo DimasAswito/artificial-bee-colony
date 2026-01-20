@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use App\Services\ABCAlgorithm;
 use App\Models\RiwayatPenjadwalan;
 use Illuminate\Support\Facades\Auth;
+use App\Exports\JadwalExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ABCController extends Controller
 {
@@ -85,5 +87,62 @@ class ABCController extends Controller
             ->findOrFail($id);
 
         return view('pages.artificial_bee_colony.detail_riwayat', compact('history'));
+    }
+
+    public function export($id)
+    {
+        $history = RiwayatPenjadwalan::with(['jadwalKuliahs.mataKuliah', 'jadwalKuliahs.dosen', 'jadwalKuliahs.ruangan', 'jadwalKuliahs.hari', 'jadwalKuliahs.jam'])
+            ->findOrFail($id);
+
+        $haris = Hari::orderBy('id')->where('status', 'Active')->get();
+        $jams = Jam::orderBy('jam_mulai')->where('status', 'Active')->get();
+        $ruangans = Ruangan::orderBy('nama_ruangan')->where('status', 'Active')->get();
+
+        // 1. Initialize Grid
+        $grid = [];
+        foreach ($haris as $h) {
+            foreach ($jams as $j) {
+                foreach ($ruangans as $r) {
+                    $grid[$h->id][$j->id][$r->id] = null;
+                }
+            }
+        }
+
+        // 2. Map Jams to Index for sequential access
+        $jamIndices = $jams->pluck('id')->values()->toArray();
+
+        // 3. Fill Grid
+        foreach ($history->jadwalKuliahs as $jadwal) {
+            $hId = $jadwal->hari_id;
+            $jId = $jadwal->jam_id;
+            $rId = $jadwal->ruangan_id;
+
+            // Check if this slot is already marked as SKIP (occupied by previous 4 SKS)
+            if (isset($grid[$hId][$jId][$rId]) && $grid[$hId][$jId][$rId] === 'SKIP') {
+                continue;
+            }
+
+            $grid[$hId][$jId][$rId] = $jadwal;
+
+            // Handle 4 SKS
+            if ($jadwal->mataKuliah->sks == 4) {
+                // Find current jam index
+                $currentIndex = array_search($jId, $jamIndices);
+                if ($currentIndex !== false && isset($jamIndices[$currentIndex + 1])) {
+                    $nextJamId = $jamIndices[$currentIndex + 1];
+                    $grid[$hId][$nextJamId][$rId] = 'SKIP';
+                }
+            }
+        }
+
+        $data = [
+            'history' => $history,
+            'haris' => $haris,
+            'jams' => $jams,
+            'ruangans' => $ruangans,
+            'grid' => $grid
+        ];
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\JadwalExport($data, $history->judul), 'Jadwal-' . $history->id . '.xlsx');
     }
 }

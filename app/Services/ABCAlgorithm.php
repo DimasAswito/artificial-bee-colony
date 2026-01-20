@@ -16,7 +16,8 @@ class ABCAlgorithm
   protected $semester;
   protected $limit; // Limit for scout bees
   protected $data = []; // Master data cache
-  protected $freeDosens = []; // Dosen who are NOT assigned to any subjet
+  /** @var \Illuminate\Support\Collection */
+  protected $freeDosens; // Dosen who are NOT assigned to any subjet
 
   // Result structure:
   // [
@@ -178,14 +179,16 @@ class ABCAlgorithm
       if (is_null($uniqueDosenId)) {
         // Fallback: Pick random active dosen FROM FREE POOL
         if ($this->freeDosens->isNotEmpty()) {
-          $uniqueDosenId = $this->freeDosens->random()->id;
+          $randomDosen = $this->freeDosens->random();
+          $uniqueDosenId = is_array($randomDosen) ? $randomDosen['id'] : $randomDosen->id;
         } else {
           // If no free dosen available, what to do?
           // We can't use assigned dosens.
           // Fallback to ANY dosen to prevent crash, but strictly this violates constraint.
           // For now, let's try to pick from ALL dosens if free pool is empty, but ideally this should be an alert.
           if ($this->data['dosen']->isNotEmpty()) {
-            $uniqueDosenId = $this->data['dosen']->random()->id;
+            $randomDosen = $this->data['dosen']->random();
+            $uniqueDosenId = is_array($randomDosen) ? $randomDosen['id'] : $randomDosen->id;
           } else {
             continue;
           }

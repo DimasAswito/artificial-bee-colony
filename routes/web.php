@@ -17,6 +17,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/generate-jadwal/process', [ABCController::class, 'generate'])->name('generate.process');
     Route::get('/riwayat-penjadwalan', [ABCController::class, 'riwayat'])->name('riwayat.index');
     Route::get('/riwayat-penjadwalan/{id}', [ABCController::class, 'detail'])->name('riwayat.detail');
+    Route::get('/riwayat-penjadwalan/{id}/export', [ABCController::class, 'export'])->name('riwayat.export');
 
     // Input Data Routes (consolidated)
     Route::controller(InputDataController::class)->group(function () {

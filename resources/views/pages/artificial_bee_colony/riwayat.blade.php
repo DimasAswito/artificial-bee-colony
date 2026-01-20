@@ -48,6 +48,16 @@
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $item->created_at->format('d M Y H:i') }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-right text-sm">
                                         <div class="flex items-center justify-end gap-2">
+                                            <a href="{{ route('riwayat.export', $item->id) }}" class="flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 hover:text-green-800 dark:border-green-800 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20" title="Export Excel">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sheet">
+                                                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                                                    <line x1="3" x2="21" y1="9" y2="9"/>
+                                                    <line x1="3" x2="21" y1="15" y2="15"/>
+                                                    <line x1="9" x2="9" y1="9" y2="21"/>
+                                                    <line x1="15" x2="15" y1="9" y2="21"/>
+                                                </svg>
+                                                Export
+                                            </a>
                                             <a href="{{ route('riwayat.detail', $item->id) }}" class="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
                                                     <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
