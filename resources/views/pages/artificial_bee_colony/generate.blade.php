@@ -217,7 +217,15 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <a href="{{ route('riwayat.detail', $h->id) }}" class="text-brand-600 hover:text-brand-900">Detail</a>
+                                    <div class="flex items-center justify-end gap-2">
+                                            <a href="{{ route('riwayat.detail', $h->id) }}" class="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
+                                                    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
+                                                    <circle cx="12" cy="12" r="3"/>
+                                                </svg>
+                                                Detail
+                                            </a>
+                                        </div>
                                 </td>
                             </tr>
                         @empty

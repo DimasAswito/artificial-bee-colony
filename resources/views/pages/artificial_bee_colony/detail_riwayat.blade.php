@@ -83,7 +83,16 @@
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                     <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ $jadwal->hari->nama_hari ?? '-' }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                        {{ isset($jadwal->jam) ? $jadwal->jam->jam_mulai . ' - ' . $jadwal->jam->jam_selesai : '-' }}
+                                        @php
+                                            $jamMulai = \Carbon\Carbon::parse($jadwal->jam->jam_mulai);
+                                            $jamSelesai = \Carbon\Carbon::parse($jadwal->jam->jam_selesai);
+                                            
+                                            // Jika 4 SKS, durasi dianggap 4 jam (karena 1 slot = 2 jam, 4 SKS = 2 slot)
+                                            if ($jadwal->mataKuliah->sks == 4) {
+                                                $jamSelesai = $jamMulai->copy()->addHours(4);
+                                            }
+                                        @endphp
+                                        {{ $jamMulai->format('H:i') . ' - ' . $jamSelesai->format('H:i') }}
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $jadwal->mataKuliah->semester ?? '-' }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white">
