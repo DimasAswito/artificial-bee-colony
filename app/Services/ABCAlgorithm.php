@@ -14,12 +14,12 @@ class ABCAlgorithm
   protected $populationSize;
   protected $maxCycles;
   protected $semester;
-  protected $limit; // Limit for scout bees
-  protected $data = []; // Master data cache
+  protected $limit; // Batas limit untuk lebah pramuka (scout bees)
+  protected $data = []; // Cache data master
   /** @var \Illuminate\Support\Collection */
-  protected $freeDosens; // Dosen who are NOT assigned to any subjet
+  protected $freeDosens; // Dosen yang BELUM ditugaskan ke mata kuliah apapun
 
-  // Result structure:
+  // Struktur Hasil:
   // [
   //    [ 'mata_kuliah_id' => ..., 'dosen_id' => ..., 'ruangan_id' => ..., 'hari_id' => ..., 'jam_id' => ... ]
   // ]
@@ -29,22 +29,22 @@ class ABCAlgorithm
     $this->populationSize = $populationSize;
     $this->maxCycles = $maxCycles;
     $this->semester = $semester;
-    $this->limit = $populationSize * 5; // Heuristic: limit depends on population
+    $this->limit = $populationSize * 5; // Heuristik: limit bergantung pada populasi
 
     $this->loadData();
   }
 
   protected function loadData()
   {
-    // Filter Mata Kuliah by Semester
+    // Filter Mata Kuliah berdasarkan Semester
     $semesterType = $this->semester; // 'Ganjil' or 'Genap'
 
     $this->data['mata_kuliah'] = MataKuliah::where('status', 'Active')
       ->with('dosen')
       ->get()
       ->filter(function ($mk) use ($semesterType) {
-        // Check if semester is odd or even
-        // Assuming semester is numeric string "1", "2", "3"
+        // Cek apakah semester ganjil atau genap
+        // Asumsi semester adalah string numerik "1", "2", "3"
         $sem = (int) $mk->semester;
         if ($semesterType === 'Ganjil') {
           return $sem % 2 != 0;
@@ -54,18 +54,14 @@ class ABCAlgorithm
       })
       ->values(); // Reset keys after filter
 
-    // Constraint: Dosen who are assigned to a subject CANNOT teach other subjects (unassigned ones).
-    // 1. Get IDs of all Assigned Dosens
-    // Note: We need to check ALL active Mata Kuliahs to determine assigned dosens, not just the filtered ones for this semester.
-    // Because a Dosen might be assigned to a Semester 2 subject, so they can't take a random Semester 1 subject?
-    // User said: "dosen A mengajar Mata kuliah A. maka dosen A tidak bisa mengajar mata kuliah B".
-    // This implies GLOBAL exclusivity.
+    // Batasan: Dosen yang sudah ditugaskan untuk mata kuliah tertentu TIDAK BISA mengajar mata kuliah lain (yang belum ada tugasnya).
+    // 1. Ambil ID semua Dosen yang sudah Ditugaskan
     $allMataKuliah = MataKuliah::where('status', 'Active')->get();
     $assignedDosenIds = $allMataKuliah->pluck('dosen_id')->filter()->unique();
 
     $this->data['dosen'] = Dosen::where('status', 'Active')->get();
 
-    // 2. Filter Free Dosens (Active Dosens NOT in assignedDosenIds)
+    // 2. Filter Dosen Bebas (Dosen Aktif yang TIDAK ada di assignedDosenIds)
     $this->freeDosens = $this->data['dosen']->whereNotIn('id', $assignedDosenIds)->values();
 
     $this->data['ruangan'] = Ruangan::where('status', 'Active')->get();
@@ -75,13 +71,13 @@ class ABCAlgorithm
 
   public function run()
   {
-    // 1. Initialize Population
+    // 1. Inisialisasi Populasi
     $population = $this->initializePopulation();
     $bestSolution = $this->getBestSolution($population);
 
     for ($cycle = 0; $cycle < $this->maxCycles; $cycle++) {
 
-      // 2. Employed Bees Phase
+      // 2. Fase Lebah Pekerja (Employed Bees)
       foreach ($population as $index => $schedule) {
         $newSchedule = $this->mutate($schedule);
 
@@ -96,13 +92,13 @@ class ABCAlgorithm
         }
       }
 
-      // 3. Onlooker Bees Phase
-      // Select based on probability (Roulette Wheel?) or standard ABC probability
-      // For minimization, probability is proportional to (1 / (1 + fitness))
+      // 3. Fase Lebah Pengamat (Onlooker Bees)
+      // Pilih berdasarkan probabilitas (Roulette Wheel?) atau probabilitas standar ABC
+      // Untuk minimasi, probabilitas sebanding dengan (1 / (1 + fitness))
       $probabilities = $this->calculateProbabilities($population);
 
-      // Onlookers select solutions to improve
-      // Simplified: Run populationSize times
+      // Onlooker memilih solusi untuk ditingkatkan
+      // Disederhanakan: Jalankan sebanyak populationSize
       for ($i = 0; $i < $this->populationSize; $i++) {
         $selectedIndex = $this->selectByProbability($probabilities);
         $selectedSchedule = $population[$selectedIndex];
@@ -119,27 +115,27 @@ class ABCAlgorithm
         }
       }
 
-      // 4. Scout Bees Phase
+      // 4. Fase Lebah Pramuka (Scout Bees)
       foreach ($population as $index => $schedule) {
         if ($schedule['trial_counter'] > $this->limit) {
-          $population[$index] = $this->generateRandomSchedule(); // Replace with fresh random
+          $population[$index] = $this->generateRandomSchedule(); // Ganti dengan random baru
         }
       }
 
-      // 5. Memorize Best Solution
+      // 5. Simpan Solusi Terbaik
       $currentBest = $this->getBestSolution($population);
       if ($this->calculateFitness($currentBest) < $this->calculateFitness($bestSolution)) {
         $bestSolution = $currentBest;
       }
 
-      // Termination Check: If fitness 0 found, break early?
-      // if ($this->calculateFitness($bestSolution) == 0) break;
+      // Cek Terminasi: Jika fitness 0 ditemukan, berhenti lebih awal?
+      if ($this->calculateFitness($bestSolution) == 0) break;
     }
 
     return [
       'schedule' => $bestSolution['data'],
       'fitness' => $this->calculateFitness($bestSolution),
-      'iterations' => $this->maxCycles // Or actual cycle count
+      'iterations' => $this->maxCycles // Atau jumlah siklus aktual
     ];
   }
 
@@ -154,38 +150,29 @@ class ABCAlgorithm
 
   protected function generateRandomSchedule()
   {
-    // One individual (Schedule) is a set of Assignments.
-    // We iterate through ALL ACTIVE Mata Kuliahs to assign them slots.
+    // Satu individu (Jadwal) adalah sekumpulan Penugasan.
+    // Kita iterasi melalui SEMUA Mata Kuliah yang AKTIF untuk memberikan slot.
     $scheduleData = [];
 
     foreach ($this->data['mata_kuliah'] as $mk) {
-      // Rule: 4 SKS -> 2 Sessions (2 blocks of 2-hours each, or 1 block of 4-hours??)
-      // User Confirmed Rule: "4 SKS takes 4 hours directly... don't split... appear 2x".
-      // Implementation: Schedule this subject TWICE. Each time it occupies 4 Hours?
-      // "mata kuliah 4 sks dalam 1 generate jadwal dapat muncul 2x".
-      // Let's assume this means: 2 occurrences in the week.
-      // AND "mengambil 4 jam langsung".
-      // So: 2 Occurrences x 4 Hours = 8 Hours Total. (Heavy, but this is the requirement).
-      // OR maybe it means Total 4 SKS, split into 2 meetings of 2 hours?
-      // User said "mengambil 4 jam nya langsung... JANGAN DIPISAH". This strongly implies one meeting is 4 hours.
-      // So 2 meetings of 4 hours it is.
+      // Aturan: 4 SKS -> 2 Sesi (2 blok masing-masing 2 jam, atau 1 blok 4 jam??)
 
       $occurrences = ($mk->sks == 4) ? 2 : 1;
 
-      // Determine Dosen for this Subject Instance
-      // If Subject has fixed lecturer, use it.
-      // If Subject has NULL lecturer, pick a RANDOM one but keep it consistent for all occurrences of this subject in this schedule.
+      // Tentukan Dosen untuk Instance Mata Kuliah ini
+      // Jika Mata Kuliah memiliki dosen tetap, gunakan itu.
+      // Jika Mata Kuliah memiliki dosen NULL, pilih satu secara ACAK tapi tetap konsisten untuk semua kemunculan mapel ini di jadwal ini.
       $uniqueDosenId = $mk->dosen_id;
       if (is_null($uniqueDosenId)) {
-        // Fallback: Pick random active dosen FROM FREE POOL
+        // Fallback: Pilih dosen aktif acak DARI KOLAM BEBAS
         if ($this->freeDosens->isNotEmpty()) {
           $randomDosen = $this->freeDosens->random();
           $uniqueDosenId = is_array($randomDosen) ? $randomDosen['id'] : $randomDosen->id;
         } else {
-          // If no free dosen available, what to do?
-          // We can't use assigned dosens.
-          // Fallback to ANY dosen to prevent crash, but strictly this violates constraint.
-          // For now, let's try to pick from ALL dosens if free pool is empty, but ideally this should be an alert.
+          // Jika tidak ada dosen bebas, 
+          // Kita tidak bisa menggunakan dosen yang sudah ditugaskan.
+          // Fallback ke SIAPAPUN dosen untuk mencegah crash, tapi secara ketat ini melanggar batasan.
+          // Untuk saat ini, coba pilih dari SEMUA dosen jika kolam bebas kosong, tapi idealnya ini harusnya jadi peringatan.
           if ($this->data['dosen']->isNotEmpty()) {
             $randomDosen = $this->data['dosen']->random();
             $uniqueDosenId = is_array($randomDosen) ? $randomDosen['id'] : $randomDosen->id;
@@ -196,9 +183,9 @@ class ABCAlgorithm
       }
 
       for ($k = 0; $k < $occurrences; $k++) {
-        $durationSlots = ($mk->sks == 4) ? 2 : 1; // Assuming 1 Slot in Jam Table = 2 Hours based on Seeder (08-10, 10-12)
+        $durationSlots = ($mk->sks == 4) ? 2 : 1; // Asumsi 1 Slot di Tabel Jam = 2 Jam berdasarkan Seeder (08-10, 10-12)
 
-        // Randomize Slot
+        // Acak Slot
         $randomAssignment = $this->getRandomAssignment($mk, $durationSlots, $uniqueDosenId);
         $scheduleData[] = $randomAssignment;
       }
@@ -212,71 +199,71 @@ class ABCAlgorithm
 
   protected function getRandomAssignment($mk, $durationSlots, $dosenId)
   {
-    // Pick Random Day
+    // Pilih Hari Secara Acak
     $hari = $this->data['hari']->random();
 
-    // Pick Random Room
+    // Pilih Ruangan Secara Acak
     $ruangan = $this->data['ruangan']->random();
 
-    // Pick Random Start Time (Jam)
-    // Must ensure there are enough consecutive slots
-    // Jam Seeder: 4 records (ids usually 1,2,3,4).
-    // If duration is 2 slots (4 hours), valid starts are: Slot 1 (08-10) -> Ends at 12:00. Slot 2 -> Ends at 14:00 (Break?).
-    // We need to check if we can pick consecutive jams.
-    // Since DB IDs might not be sequential or guaranteed, we should use array index from loaded data.
+    // Pilih Jam Mulai Secara Acak (Jam)
+    // Harus memastikan ada cukup slot yang berurutan
+    // Seeder Jam: 4 record (id biasanya 1,2,3,4).
+    // Jika durasi 2 slot (4 jam), mulai yang valid: Slot 1 (08-10) -> Berakhir 12:00. Slot 2 -> Berakhir 14:00 (Istirahat?).
+    // Kita perlu mengecek apakah kita bisa memilih jam berurutan.
+    // Karena ID DB mungkin tidak berurutan atau dijamin, kita gunakan index array dari data yang dimuat.
 
     $jamCount = $this->data['jam']->count();
-    $validStartIndices = range(0, $jamCount - $durationSlots); // e.g. count 4, duration 2 -> indices 0, 1, 2. (0+1, 1+1, 2+1 are valid?)
-    // If duration 2: Index 0 (08-10) + Index 1 (10-12) OK.
+    $validStartIndices = range(0, $jamCount - $durationSlots); // cth: count 4, duration 2 -> indices 0, 1, 2. (0+1, 1+1, 2+1 valid?)
+    // Jika durasi 2: Index 0 (08-10) + Index 1 (10-12) OK.
     // Index 2 (13-15) + Index 3 (15-17) OK.
-    // Index 1 (10-12) + Index 2 (13-15) -> Across lunch break? User didn't specify. Assuming OK for now.
+    // Index 1 (10-12) + Index 2 (13-15) -> Menginjak jam istirahat? User tidak menentukan. Asumsi OK untuk sekarang.
 
     if (empty($validStartIndices)) {
-      // Fallback: Just pick any, fitness function will penalize invalid duration
+      // Fallback: Pilih sembarang, fungsi fitness akan memberi penalti durasi tidak valid
       $startIndex = rand(0, $jamCount - 1);
     } else {
       $startIndex = $validStartIndices[array_rand($validStartIndices)];
     }
 
-    // Selected Jams (Store just the start JAM ID, logic implies it takes sequential)
+    // Jam Terpilih (Simpan hanya JAM ID mulai, logika menyiratkan urutan)
     $startJam = $this->data['jam'][$startIndex];
 
     return [
       'mata_kuliah_id' => $mk->id,
-      'dosen_id' => $dosenId, // Constraint: Assigned Dosen (Fixed or Random)
+      'dosen_id' => $dosenId, // Batasan: Dosen yang Ditugaskan (Tetap atau Acak)
       'ruangan_id' => $ruangan->id,
       'hari_id' => $hari->id,
       'jam_id' => $startJam->id,
-      // Meta data for checking
+      // Meta data untuk pengecekan
       'sks' => $mk->sks,
       'duration_slots' => $durationSlots,
-      'jam_index' => $startIndex // Helper to find consecutive jams
+      'jam_index' => $startIndex // Pembantu untuk mencari jam berurutan
     ];
   }
 
   protected function mutate($schedule)
   {
-    // Change ONE assignment in the schedule
+    // Ubah SATU penugasan dalam jadwal
     $newScheduleData = $schedule['data'];
     $mutationIndex = array_rand($newScheduleData);
 
     $item = $newScheduleData[$mutationIndex];
-    // Mutate: Pick a new random Room, Day, or Time. 
-    // We don't mutate Subject/Lecturer relation as it's fixed.
+    // Mutasi: Pilih Ruangan, Hari, atau Waktu acak baru.
+    // Kita tidak memutasi relasi Mata Kuliah/Dosen karena itu tetap.
 
-    // Simple Mutation strategies:
-    // 1. Change Room
-    // 2. Change Time (Day + Jam)
+    // Strategi Mutasi Sederhana:
+    // 1. Ubah Ruangan
+    // 2. Ubah Waktu (Hari + Jam)
 
     if (rand(0, 1) == 0) {
-      // Change Room
+      // Ubah Ruangan
       $item['ruangan_id'] = $this->data['ruangan']->random()->id;
     } else {
-      // Change Time
+      // Ubah Waktu
       $hari = $this->data['hari']->random();
       $item['hari_id'] = $hari->id;
 
-      // Re-roll valid jam
+      // Acak ulang jam yang valid
       $jamCount = $this->data['jam']->count();
       $durationSlots = $item['duration_slots'];
       $validStartIndices = range(0, $jamCount - $durationSlots);
@@ -291,7 +278,7 @@ class ABCAlgorithm
 
     return [
       'data' => $newScheduleData,
-      'trial_counter' => $schedule['trial_counter'] // Counter reset handled in main loop
+      'trial_counter' => $schedule['trial_counter'] // Reset counter ditangani di loop utama
     ];
   }
 
@@ -306,11 +293,11 @@ class ABCAlgorithm
         $a = $assignments[$i];
         $b = $assignments[$j];
 
-        // Check for Time Overlap
-        // Same Day
+        // Cek Tumpang Tindih Waktu
+        // Hari Sama
         if ($a['hari_id'] == $b['hari_id']) {
-          // Check Jam Overlap
-          // A range: [start, start + duration)
+          // Cek Tumpang Tindih Jam
+          // Rentang A: [mulai, mulai + durasi)
           $aStart = $a['jam_index'];
           $aEnd = $aStart + $a['duration_slots'];
 
@@ -318,35 +305,35 @@ class ABCAlgorithm
           $bEnd = $bStart + $b['duration_slots'];
 
           if ($aStart < $bEnd && $bStart < $aEnd) {
-            // TIME CONFLICT DETECTED
+            // KONFLIK WAKTU TERDETEKSI
 
-            // Rule 1: Room Conflict (Same Room at Same Time)
+            // Aturan 1: Konflik Ruangan (Ruangan Sama pada Waktu Sama)
             if ($a['ruangan_id'] == $b['ruangan_id']) {
               $conflicts++;
             }
 
-            // Rule 2: Lecturer Conflict (Same Lecturer at Same Time)
+            // Aturan 2: Konflik Dosen (Dosen Sama pada Waktu Sama)
             if ($a['dosen_id'] == $b['dosen_id']) {
               $conflicts++;
             }
 
-            // Rule 3: Parameter "Mata kuliah 4 SKS ... bisa digunakan oleh dosen yg tertulis" is structural (handled in init).
+            // Aturan 3: Parameter "Mata kuliah 4 SKS ... bisa digunakan oleh dosen yg tertulis" adalah struktural (ditangani di init).
           }
         }
       }
     }
 
-    // Fitness value is simply conflict count.
-    // ABC typically maximizes fitness. Fitness = 1 / (1 + conflicts).
-    // But our variable is 'best_fitness_value' (double), and user said "fitness paling kecil".
-    // So we treat Conflict Count AS the value to minimize.
+    // Nilai fitness hanyalah jumlah konflik.
+    // ABC biasanya memaksimalkan fitness. Fitness = 1 / (1 + conflicts).
+    // Tapi variabel kita adalah 'best_fitness_value' (double), dan user bilang "fitness paling kecil".
+    // Jadi kita perlakukan Jumlah Konflik SEBAGAI nilai yang diminimalkan.
     return $conflicts;
   }
 
   protected function calculateProbabilities($population)
   {
-    // Based on conflicts (minimization).
-    // Convert to fitness (maximization) for roulette wheel
+    // Berdasarkan konflik (minimasi).
+    // Konversi ke fitness (maksimasi) untuk roulette wheel
     // f = 1 / (1 + conflicts)
 
     $fitnesses = [];

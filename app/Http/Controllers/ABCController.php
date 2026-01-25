@@ -43,7 +43,7 @@ class ABCController extends Controller
         $algorithm = new ABCAlgorithm($request->population, $request->max_cycles, $request->semester);
         $result = $algorithm->run();
 
-        // Save History
+        // Simpan Riwayat
         $history = RiwayatPenjadwalan::create([
             'user_id' => Auth::id(),
             'judul' => $request->judul,
@@ -54,7 +54,7 @@ class ABCController extends Controller
             'status' => 'Final', // Locked for now
         ]);
 
-        // Save Schedule Details
+        // Simpan Detail Jadwal
         foreach ($result['schedule'] as $item) {
             JadwalKuliah::create([
                 'riwayat_penjadwalan_id' => $history->id,
@@ -98,7 +98,7 @@ class ABCController extends Controller
         $jams = Jam::orderBy('jam_mulai')->where('status', 'Active')->get();
         $ruangans = Ruangan::orderBy('nama_ruangan')->where('status', 'Active')->get();
 
-        // 1. Initialize Grid
+        // 1. Inisialisasi Grid
         $grid = [];
         foreach ($haris as $h) {
             foreach ($jams as $j) {
@@ -108,25 +108,25 @@ class ABCController extends Controller
             }
         }
 
-        // 2. Map Jams to Index for sequential access
+        // 2. Petakan Jam ke Index untuk akses berurutan
         $jamIndices = $jams->pluck('id')->values()->toArray();
 
-        // 3. Fill Grid
+        // 3. Isi Grid
         foreach ($history->jadwalKuliahs as $jadwal) {
             $hId = $jadwal->hari_id;
             $jId = $jadwal->jam_id;
             $rId = $jadwal->ruangan_id;
 
-            // Check if this slot is already marked as SKIP (occupied by previous 4 SKS)
+            // Cek apakah slot ini sudah ditandai SKIP (ditempati oleh 4 SKS sebelumnya)
             if (isset($grid[$hId][$jId][$rId]) && $grid[$hId][$jId][$rId] === 'SKIP') {
                 continue;
             }
 
             $grid[$hId][$jId][$rId] = $jadwal;
 
-            // Handle 4 SKS
+            // Tangani 4 SKS
             if ($jadwal->mataKuliah->sks == 4) {
-                // Find current jam index
+                // Cari index jam saat ini
                 $currentIndex = array_search($jId, $jamIndices);
                 if ($currentIndex !== false && isset($jamIndices[$currentIndex + 1])) {
                     $nextJamId = $jamIndices[$currentIndex + 1];
