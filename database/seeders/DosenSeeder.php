@@ -58,6 +58,13 @@ class DosenSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
+                'nama_dosen' => 'Akas Bagus Setiawan, S. Kom., M.MT',
+                'nip' => '199107222024061004',
+                'email' => 'akas.setiawan@gmail.com',
+                'status' => 'Active',
+                'created_at' => now(),
+            ],
+            [
                 'nama_dosen' => 'Agung Sutrisno, S.S, M.Hum',
                 'status' => 'Active',
                 'created_at' => now(),
@@ -69,7 +76,12 @@ class DosenSeeder extends Seeder
             ],
             [
                 'nama_dosen' => 'Drs. Asmunir, M.M',
-                'status' => 'Inactive',
+                'status' => 'Active',
+                'created_at' => now(),
+            ],
+            [
+                'nama_dosen' => 'Aris Kuswanto, ST, M.PdI',
+                'status' => 'Active',
                 'created_at' => now(),
             ],
         ];

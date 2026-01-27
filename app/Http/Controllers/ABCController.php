@@ -32,6 +32,8 @@ class ABCController extends Controller
 
     public function generate(Request $request)
     {
+        set_time_limit(300); // 5 Minutes max execution time
+
         $request->validate([
             'judul' => 'required|string|max:255',
             'population' => 'required|integer|min:10|max:200',
