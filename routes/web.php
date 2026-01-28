@@ -1,10 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ABCController;
+use App\Http\Controllers\LogController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InputDataController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ABCController;
 
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
@@ -17,6 +18,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/riwayat-penjadwalan', [ABCController::class, 'riwayat'])->name('riwayat.index');
     Route::get('/riwayat-penjadwalan/{id}', [ABCController::class, 'detail'])->name('riwayat.detail');
     Route::get('/riwayat-penjadwalan/{id}/export', [ABCController::class, 'export'])->name('riwayat.export');
+
+    // Log Routes
+    Route::get('/log', [LogController::class, 'index'])->name('log.index');
+    Route::get('/log/data', [LogController::class, 'getLogsData'])->name('log.data');
 
     // Input Data Routes (consolidated)
     Route::controller(InputDataController::class)->group(function () {

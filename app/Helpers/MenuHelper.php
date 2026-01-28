@@ -59,7 +59,8 @@ class MenuHelper
             [
                 'icon' => 'charts',
                 'name' => 'Log Pengguna',
-                'path' => '/profile',
+                // 'path' => '/profile',
+                'path' => '/log',
                 // 'subItems' => [
                 //     ['name' => 'Line Chart', 'path' => '/line-chart', 'pro' => false],
                 //     ['name' => 'Bar Chart', 'path' => '/bar-chart', 'pro' => false]
