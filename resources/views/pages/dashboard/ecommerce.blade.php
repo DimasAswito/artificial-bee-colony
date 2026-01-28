@@ -6,69 +6,93 @@
 
 @section('content')
   <div class="grid grid-cols-12 gap-4 md:gap-6">
-    <div class="col-span-12 space-y-6 xl:col-span-7">
-      <x-ecommerce.ecommerce-metrics />
-      <x-ecommerce.monthly-sale />
-    </div>
-    <div class="col-span-12 xl:col-span-5">
-        <x-ecommerce.monthly-target />
+    <!-- Metrics -->
+    <div class="col-span-12 space-y-6">
+      <x-ecommerce.ecommerce-metrics 
+        :totalDosen="$totalDosen" 
+        :totalMataKuliah="$totalMataKuliah" 
+        :totalRuangan="$totalRuangan" 
+        :totalRiwayat="$totalRiwayat"
+      />
     </div>
 
+    <!-- Charts Row -->
+    <div class="col-span-12 grid grid-cols-12 gap-4 md:gap-6">
+        <!-- Bar Chart: Jumlah Kuliah per Hari -->
+        <div class="col-span-12 xl:col-span-8">
+            <div class="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6 h-full">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
+                    Statistik Jadwal per Hari
+                </h3>
+                <div id="chartHari" class="-ml-4 min-w-[300px] pl-2 xl:min-w-full"></div>
+            </div>
+        </div>
+
+        <!-- Donut Chart: Semester Ratio -->
+        <div class="col-span-12 xl:col-span-4">
+            <div class="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6 h-full">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
+                    Rasio Mata Kuliah (Aktif)
+                </h3>
+                <div id="chartSemester" class="flex justify-center"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table: Riwayat Generate Terakhir -->
     <div class="col-span-12">
-      <x-ecommerce.statistics-chart />
-    </div>
-
-    <div class="col-span-12 xl:col-span-5">
-      <x-ecommerce.customer-demographic />
-    </div>
-
-    <div class="col-span-12 xl:col-span-7">
-      <x-ecommerce.recent-orders />
-    </div>
-
-    <!-- DataTables Test Card -->
-    <div class="col-span-12">
-        <div class="rounded-sm border border-stroke bg-white px-5 pt-6 pb-2.5 shadow-default dark:border-gray-800 dark:bg-gray-800 sm:px-7.5 xl:pb-1">
-            <h4 class="mb-6 text-xl font-bold text-black dark:text-white">
-                DataTables Test
-            </h4>
-            <div class="overflow-x-auto">
-                <table id="exampleTable" class="w-full table-auto display text-left">
-                    <thead>
-                        <tr class="bg-gray-2 text-left dark:bg-gray-700">
-                            <th class="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white">Name</th>
-                            <th class="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">Position</th>
-                            <th class="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">Office</th>
-                            <th class="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">Age</th>
-                            <th class="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">Start date</th>
-                            <th class="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">Salary</th>
+        <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                 <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                    Riwayat Generate Terakhir
+                </h3>
+                <a href="{{ route('riwayat.index') }}" class="text-sm font-medium text-brand-500 hover:text-brand-600">Lihat Semua &rarr;</a>
+            </div>
+             <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Tanggal</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Judul</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Tahun Ajaran / Semester</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Konflik</th>
+                             <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td class="border-b border-[#eee] py-5 px-4 pl-9 dark:border-gray-700 xl:pl-1"><h5 class="font-medium text-black dark:text-white">Tiger Nixon</h5></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">System Architect</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">Edinburgh</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">61</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">2011/04/25</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">$320,800</p></td>
-                        </tr>
-                        <tr>
-                            <td class="border-b border-[#eee] py-5 px-4 pl-9 dark:border-gray-700 xl:pl-1"><h5 class="font-medium text-black dark:text-white">Garrett Winters</h5></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">Accountant</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">Tokyo</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">63</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">2011/07/25</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">$170,750</p></td>
-                        </tr>
-                         <tr>
-                            <td class="border-b border-[#eee] py-5 px-4 pl-9 dark:border-gray-700 xl:pl-1"><h5 class="font-medium text-black dark:text-white">Ashton Cox</h5></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">Junior Technical Author</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">San Francisco</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">66</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">2009/01/12</p></td>
-                            <td class="border-b border-[#eee] py-5 px-4 dark:border-gray-700"><p class="text-black dark:text-white">$86,000</p></td>
-                        </tr>
+                    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+                        @forelse ($recentHistory as $h)
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                    {{ $h->created_at->format('d M Y H:i') }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                    {{ $h->judul ?? 'Jadwal #' . $h->id }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                    {{ $h->tahun_ajaran }} - {{ $h->semester }}
+                                </td>
+                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $h->best_fitness_value == 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                        {{ $h->best_fitness_value }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex items-center justify-end gap-2">
+                                            <a href="{{ route('riwayat.detail', $h->id) }}" class="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
+                                                    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
+                                                    <circle cx="12" cy="12" r="3"/>
+                                                </svg>
+                                                Detail
+                                            </a>
+                                        </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Belum ada riwayat generate.</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -79,11 +103,92 @@
 
 @push('scripts')
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/2.2.1/js/dataTables.js"></script>
-    <script src="https://cdn.datatables.net/2.2.1/js/dataTables.tailwindcss.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
         $(document).ready(function() {
-            $('#exampleTable').DataTable();
+            // 1. Bar Chart: Jumlah Kuliah per Hari
+            var optionsHari = {
+                series: [{
+                    name: 'Jumlah Mata Kuliah',
+                    data: @json($chartHariData)
+                }],
+                chart: {
+                    type: 'bar',
+                    height: 350,
+                    toolbar: { show: false }
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 4,
+                        horizontal: false, // Vertical
+                        columnWidth: '55%',
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                xaxis: {
+                    categories: @json($chartHariLabels),
+                },
+                yaxis: {
+                    title: {
+                        text: 'Jumlah Mata Kuliah'
+                    }
+                },
+                colors: ['#3C50E0'],
+                title: {
+                    text: undefined,
+                    align: 'left'
+                }
+            };
+            var chartHari = new ApexCharts(document.querySelector("#chartHari"), optionsHari);
+            chartHari.render();
+
+            // 2. Donut Chart: Semester Ratio
+            var optionsSemester = {
+                series: @json($chartSemesterData),
+                labels: @json($chartSemesterLabels),
+                chart: {
+                    type: 'donut',
+                    height: 350
+                },
+                colors: ['#3C50E0', '#80CAEE'],
+                dataLabels: {
+                    enabled: true,
+                    style: {
+                        colors: ['#FFFFFF'],
+                        fontWeight: 'bold',
+                    },
+                    dropShadow: {
+                        enabled: true,
+                        top: 1,
+                        left: 1,
+                        blur: 1,
+                        color: '#000',
+                        opacity: 0.45
+                    }
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            labels: {
+                                show: true,
+                                total: {
+                                    show: true,
+                                    label: 'Total Active',
+                                    formatter: function (w) {
+                                        return w.globals.seriesTotals.reduce((a, b) => {
+                                            return a + b
+                                        }, 0)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            var chartSemester = new ApexCharts(document.querySelector("#chartSemester"), optionsSemester);
+            chartSemester.render();
         });
     </script>
 @endpush

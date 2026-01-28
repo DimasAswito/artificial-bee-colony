@@ -9,9 +9,8 @@ use App\Http\Controllers\ABCController;
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
     // dashboard pages
-    Route::get('/', function () {
-        return view('pages.dashboard.ecommerce', ['title' => 'E-commerce Dashboard']);
-    })->name('dashboard');
+    // dashboard pages
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/generate-jadwal', [ABCController::class, 'index'])->name('generate.jadwal');
     Route::post('/generate-jadwal/process', [ABCController::class, 'generate'])->name('generate.process');
