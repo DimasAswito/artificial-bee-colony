@@ -80,17 +80,26 @@
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             @forelse ($history->jadwalKuliahs as $jadwal)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                @php
+                                    $isConflict = in_array($jadwal->id, $conflictingIds ?? []);
+                                @endphp
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 {{ $isConflict ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500' : '' }}">
                                     <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ $jadwal->hari->nama_hari ?? '-' }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                         @php
                                             $jamMulai = \Carbon\Carbon::parse($jadwal->jam->jam_mulai);
-                                            $jamSelesai = \Carbon\Carbon::parse($jadwal->jam->jam_selesai);
-                                            
-                                            // Jika 4 SKS, durasi dianggap 4 jam (karena 1 slot = 2 jam, 4 SKS = 2 slot)
+                                            // Hitung durasi berdasarkan SKS
+                                            // 4 SKS = 3 Jam
+                                            // 2 SKS = 2 Jam
+                                            // Lainnya = 1 Jam (Default Slot)
+                                            $addHours = 1;
                                             if ($jadwal->mataKuliah->sks == 4) {
-                                                $jamSelesai = $jamMulai->copy()->addHours(4);
+                                                $addHours = 3;
+                                            } elseif ($jadwal->mataKuliah->sks == 2) {
+                                                $addHours = 2;
                                             }
+                                            
+                                            $jamSelesai = $jamMulai->copy()->addHours($addHours);
                                         @endphp
                                         {{ $jamMulai->format('H:i') . ' - ' . $jamSelesai->format('H:i') }}
                                     </td>

@@ -66,7 +66,7 @@ class ABCAlgorithm
 
     $this->data['ruangan'] = Ruangan::where('status', 'Active')->get();
     $this->data['hari'] = Hari::where('status', 'Active')->get();
-    $this->data['jam'] = Jam::where('status', 'Active')->get();
+    $this->data['jam'] = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->values(); // Ensure strictly ordered and indexed
   }
 
   public function run()
@@ -153,6 +153,14 @@ class ABCAlgorithm
     // Satu individu (Jadwal) adalah sekumpulan Penugasan.
     // Kita iterasi melalui SEMUA Mata Kuliah yang AKTIF untuk memberikan slot.
     $scheduleData = [];
+    $dosenUsageCount = [];
+
+    // Inisialisasi usage count
+    if ($this->data['dosen']->isNotEmpty()) {
+      foreach ($this->data['dosen'] as $dosen) {
+        $dosenUsageCount[$dosen->id] = 0;
+      }
+    }
 
     foreach ($this->data['mata_kuliah'] as $mk) {
       // Aturan: 4 SKS -> 2 Sesi (2 blok masing-masing 2 jam, atau 1 blok 4 jam??)
@@ -164,26 +172,49 @@ class ABCAlgorithm
       // Jika Mata Kuliah memiliki dosen NULL, pilih satu secara ACAK tapi tetap konsisten untuk semua kemunculan mapel ini di jadwal ini.
       $uniqueDosenId = $mk->dosen_id;
       if (is_null($uniqueDosenId)) {
-        // Fallback: Pilih dosen aktif acak DARI KOLAM BEBAS
-        if ($this->freeDosens->isNotEmpty()) {
-          $randomDosen = $this->freeDosens->random();
-          $uniqueDosenId = is_array($randomDosen) ? $randomDosen['id'] : $randomDosen->id;
-        } else {
-          // Jika tidak ada dosen bebas, 
-          // Kita tidak bisa menggunakan dosen yang sudah ditugaskan.
-          // Fallback ke SIAPAPUN dosen untuk mencegah crash, tapi secara ketat ini melanggar batasan.
-          // Untuk saat ini, coba pilih dari SEMUA dosen jika kolam bebas kosong, tapi idealnya ini harusnya jadi peringatan.
-          if ($this->data['dosen']->isNotEmpty()) {
-            $randomDosen = $this->data['dosen']->random();
-            $uniqueDosenId = is_array($randomDosen) ? $randomDosen['id'] : $randomDosen->id;
-          } else {
-            continue;
+        // Strategi Baru "Cara Cepat": Load Balanced Random Selection
+        // Pilih dosen yang jumlah jam mengajarnya PALING SEDIKIT saat ini
+
+        $candidates = $this->freeDosens->isNotEmpty() ? $this->freeDosens : $this->data['dosen'];
+        if ($candidates->isEmpty()) continue;
+
+        // Cari Usage Terkecil
+        $minUsage = PHP_INT_MAX;
+        foreach ($candidates as $cand) {
+          $id = is_array($cand) ? $cand['id'] : $cand->id;
+          $usage = $dosenUsageCount[$id] ?? 0;
+          if ($usage < $minUsage) {
+            $minUsage = $usage;
           }
         }
+
+        // Filter Candidate dengan Minimum Usage
+        $bestCandidates = [];
+        foreach ($candidates as $cand) {
+          $id = is_array($cand) ? $cand['id'] : $cand->id;
+          $usage = $dosenUsageCount[$id] ?? 0;
+          if ($usage == $minUsage) {
+            $bestCandidates[] = $cand;
+          }
+        }
+
+        // Pilih satu secara acak dari yang terbaik
+        $randomDosen = $bestCandidates[array_rand($bestCandidates)];
+        $uniqueDosenId = is_array($randomDosen) ? $randomDosen['id'] : $randomDosen->id;
+      }
+
+      // Update Usage Count untuk Dosen Terpilih
+      if (isset($dosenUsageCount[$uniqueDosenId])) {
+        $dosenUsageCount[$uniqueDosenId]++;
+      } else {
+        $dosenUsageCount[$uniqueDosenId] = 1;
       }
 
       for ($k = 0; $k < $occurrences; $k++) {
-        $durationSlots = ($mk->sks == 4) ? 2 : 1; // Asumsi 1 Slot di Tabel Jam = 2 Jam berdasarkan Seeder (08-10, 10-12)
+        // PERUBAHAN LOGIKA DURASI (1 Slot = 1 Jam)
+        // 4 SKS = 3 Jam (3 Slot) -- Permintaan user
+        // 2 SKS = 2 Jam (2 Slot)
+        $durationSlots = ($mk->sks == 4) ? 3 : 2;
 
         // Acak Slot
         $randomAssignment = $this->getRandomAssignment($mk, $durationSlots, $uniqueDosenId);
@@ -195,6 +226,37 @@ class ABCAlgorithm
       'data' => $scheduleData,
       'trial_counter' => 0
     ];
+  }
+
+  protected function getConflictingIndices($assignments)
+  {
+    $indices = [];
+    $n = count($assignments);
+
+    for ($i = 0; $i < $n; $i++) {
+      for ($j = $i + 1; $j < $n; $j++) {
+        $a = $assignments[$i];
+        $b = $assignments[$j];
+
+        // Cek Hari Sama
+        if ($a['hari_id'] == $b['hari_id']) {
+          $aStart = $a['jam_index'];
+          $aEnd = $aStart + $a['duration_slots'];
+          $bStart = $b['jam_index'];
+          $bEnd = $bStart + $b['duration_slots'];
+
+          // Cek Irisan Waktu
+          if ($aStart < $bEnd && $bStart < $aEnd) {
+            // Konflik Ruangan ATAU Dosen
+            if ($a['ruangan_id'] == $b['ruangan_id'] || $a['dosen_id'] == $b['dosen_id']) {
+              $indices[] = $i;
+              $indices[] = $j;
+            }
+          }
+        }
+      }
+    }
+    return array_unique($indices);
   }
 
   protected function getRandomAssignment($mk, $durationSlots, $dosenId)
@@ -213,13 +275,32 @@ class ABCAlgorithm
     // Karena ID DB mungkin tidak berurutan atau dijamin, kita gunakan index array dari data yang dimuat.
 
     $jamCount = $this->data['jam']->count();
-    $validStartIndices = range(0, $jamCount - $durationSlots); // cth: count 4, duration 2 -> indices 0, 1, 2. (0+1, 1+1, 2+1 valid?)
-    // Jika durasi 2: Index 0 (08-10) + Index 1 (10-12) OK.
-    // Index 2 (13-15) + Index 3 (15-17) OK.
-    // Index 1 (10-12) + Index 2 (13-15) -> Menginjak jam istirahat? User tidak menentukan. Asumsi OK untuk sekarang.
+    // GUNAKAN LOGIKA VALID INDICES (INLINE)
+    // Cegah menyeberang istirahat (Index 3 = 11-12, Index 4 = 13-14)
+    // Blok Pagi: 0, 1, 2, 3
+    // Blok Siang: 4, 5, 6, 7
+
+    $validStartIndices = [];
+    $range = range(0, $jamCount - $durationSlots);
+
+    foreach ($range as $start) {
+      $end = $start + $durationSlots;
+      // Jika start di Pagi (<=3), End harus <= 4 (artinya max sampai jam 12)
+      // Jika start di Siang (>=4), aman
+
+      $isCrossingBreak = false;
+      // USER REQUEST: DISABLE BREAK CONSTRAINT (9 SLOTS CONTINUOUS)
+      // if ($start <= 3 && $end > 4) {
+      //   $isCrossingBreak = true;
+      // }
+
+      if (!$isCrossingBreak) {
+        $validStartIndices[] = $start;
+      }
+    }
 
     if (empty($validStartIndices)) {
-      // Fallback: Pilih sembarang, fungsi fitness akan memberi penalti durasi tidak valid
+      // Fallback: Pilih sembarang jika terpaksa
       $startIndex = rand(0, $jamCount - 1);
     } else {
       $startIndex = $validStartIndices[array_rand($validStartIndices)];
@@ -245,7 +326,18 @@ class ABCAlgorithm
   {
     // Ubah SATU penugasan dalam jadwal
     $newScheduleData = $schedule['data'];
-    $mutationIndex = array_rand($newScheduleData);
+
+    // LOGIKA MUTASI PINTAR (Conflict-Directed Mutation)
+    // 1. Identifikasi item yang mengalami konflik
+    $conflictingIndices = $this->getConflictingIndices($newScheduleData);
+
+    // 2. Jika ada konflik, prioritaskan mutasi pada item tersebut
+    if (!empty($conflictingIndices)) {
+      $mutationIndex = $conflictingIndices[array_rand($conflictingIndices)];
+    } else {
+      // Jika tidak ada konflik, mutasi acak
+      $mutationIndex = array_rand($newScheduleData);
+    }
 
     $item = $newScheduleData[$mutationIndex];
     // Mutasi: Pilih Ruangan, Hari, atau Waktu acak baru.
@@ -266,7 +358,20 @@ class ABCAlgorithm
       // Acak ulang jam yang valid
       $jamCount = $this->data['jam']->count();
       $durationSlots = $item['duration_slots'];
-      $validStartIndices = range(0, $jamCount - $durationSlots);
+
+      $validStartIndices = [];
+      $range = range(0, $jamCount - $durationSlots);
+
+      foreach ($range as $start) {
+        $end = $start + $durationSlots;
+        // Cek Crossing Break (Pagi -> Siang) (Inline Logic)
+        // USER REQUEST: DISABLE BREAK CONSTRAINT
+        // if ($start <= 3 && $end > 4) {
+        //   continue; // Skip
+        // }
+        $validStartIndices[] = $start;
+      }
+
       if (!empty($validStartIndices)) {
         $startIndex = $validStartIndices[array_rand($validStartIndices)];
         $item['jam_id'] = $this->data['jam'][$startIndex]->id;

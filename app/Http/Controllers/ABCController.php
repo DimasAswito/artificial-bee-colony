@@ -88,7 +88,45 @@ class ABCController extends Controller
         }, 'jadwalKuliahs.mataKuliah', 'jadwalKuliahs.dosen', 'jadwalKuliahs.ruangan', 'jadwalKuliahs.hari', 'jadwalKuliahs.jam'])
             ->findOrFail($id);
 
-        return view('pages.artificial_bee_colony.detail_riwayat', compact('history'));
+        // Deteksi Konflik untuk Highlight
+        $items = $history->jadwalKuliahs;
+        $conflictingIds = [];
+
+        // Map Jam ID ke Index (Asumsi ID berurutan atau kita load semua jam)
+        $allJams = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->pluck('id')->values()->toArray();
+
+        foreach ($items as $keyA => $a) {
+            foreach ($items as $keyB => $b) {
+                if ($a->id == $b->id) continue;
+
+                if ($a->hari_id == $b->hari_id) {
+                    // Hitung Rentang Waktu A
+                    $aDurasi = ($a->mataKuliah->sks == 4) ? 3 : (($a->mataKuliah->sks == 2) ? 2 : 1);
+                    $aIndex = array_search($a->jam_id, $allJams);
+                    if ($aIndex === false) continue;
+
+                    // Hitung Rentang Waktu B
+                    $bDurasi = ($b->mataKuliah->sks == 4) ? 3 : (($b->mataKuliah->sks == 2) ? 2 : 1);
+                    $bIndex = array_search($b->jam_id, $allJams);
+                    if ($bIndex === false) continue;
+
+                    $aEnd = $aIndex + $aDurasi;
+                    $bEnd = $bIndex + $bDurasi;
+
+                    // Cek Irisan
+                    if ($aIndex < $bEnd && $bIndex < $aEnd) {
+                        // Cek Konflik Ruangan atau Dosen
+                        if ($a->ruangan_id == $b->ruangan_id || $a->dosen_id == $b->dosen_id) {
+                            $conflictingIds[] = $a->id;
+                            // Tidak perlu break, biarkan loop menandai semua yang terlibat
+                        }
+                    }
+                }
+            }
+        }
+        $conflictingIds = array_unique($conflictingIds);
+
+        return view('pages.artificial_bee_colony.detail_riwayat', compact('history', 'conflictingIds'));
     }
 
     public function export($id)

@@ -38,19 +38,12 @@ $totalSlotsNeeded = 0;
 $details = [];
 
 foreach ($mataKuliahs as $mk) {
-  // Logic from ABCAlgorithm
-  // 4 SKS -> 2 Occurrences, each takes 2 slots = 4 slots total?
-  // OR 2 Occurrences * 1 slot?
-  // Wait, code says:
-  // $durationSlots = ($mk->sks == 4) ? 2 : 1; 
-  // $occurrences = ($mk->sks == 4) ? 2 : 1;
-  // Total slots = occurrences * durationSlots
-
-  // If SKS 4: 2 * 2 = 4 slots occupied in a room.
-  // If SKS 2: 1 * 1 = 1 slot occupied.
+  // Logic Baru (1 Slot = 1 Jam)
+  // 4 SKS = 3 Jam (3 Slot) x 2 Occurrences = 6 Slot Total
+  // 2 SKS = 2 Jam (2 Slot) x 1 Occurrence = 2 Slot Total
 
   $occurrences = ($mk->sks == 4) ? 2 : 1;
-  $duration = ($mk->sks == 4) ? 2 : 1;
+  $duration = ($mk->sks == 4) ? 3 : 2;
 
   $slotsForThis = $occurrences * $duration;
   $totalSlotsNeeded += $slotsForThis;
