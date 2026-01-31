@@ -14,6 +14,7 @@ class ABCAlgorithm
   protected $populationSize;
   protected $maxCycles;
   protected $semester;
+  protected $jumatId; // Cache ID Jumat
   protected $limit; // Batas limit untuk lebah pramuka (scout bees)
   protected $data = []; // Cache data master
   /** @var \Illuminate\Support\Collection */
@@ -30,6 +31,10 @@ class ABCAlgorithm
     $this->maxCycles = $maxCycles;
     $this->semester = $semester;
     $this->limit = $populationSize * 5; // Heuristik: limit bergantung pada populasi
+
+    // Get Jumat ID dynamically (or fallback to 5)
+    $hariJumat = \App\Models\Hari::where('nama_hari', 'Jumat')->first();
+    $this->jumatId = $hariJumat ? $hariJumat->id : 5;
 
     $this->loadData();
   }
@@ -294,6 +299,16 @@ class ABCAlgorithm
       //   $isCrossingBreak = true;
       // }
 
+      // FRIDAY PRAYER EXCEPTION: Forbidden slots 3 (11:00-12:00) and 4 (12:00-13:00)
+      if ($hari->id == $this->jumatId) {
+        for ($s = $start; $s < $end; $s++) {
+          if ($s == 3 || $s == 4) {
+            $isCrossingBreak = true;
+            break;
+          }
+        }
+      }
+
       if (!$isCrossingBreak) {
         $validStartIndices[] = $start;
       }
@@ -369,6 +384,19 @@ class ABCAlgorithm
         // if ($start <= 3 && $end > 4) {
         //   continue; // Skip
         // }
+
+        // FRIDAY PRAYER EXCEPTION
+        if ($hari->id == $this->jumatId) {
+          $hitFridayBreak = false;
+          for ($s = $start; $s < $end; $s++) {
+            if ($s == 3 || $s == 4) {
+              $hitFridayBreak = true;
+              break;
+            }
+          }
+          if ($hitFridayBreak) continue;
+        }
+
         $validStartIndices[] = $start;
       }
 
