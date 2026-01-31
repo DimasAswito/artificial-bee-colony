@@ -164,13 +164,21 @@ class ABCController extends Controller
 
             $grid[$hId][$jId][$rId] = $jadwal;
 
-            // Tangani 4 SKS
-            if ($jadwal->mataKuliah->sks == 4) {
-                // Cari index jam saat ini
+            // Hitung durasi slot: 4 SKS = 3 Slot, 2 SKS = 2 Slot (Default)
+            // Asumsi SKS 2 = 2 Slot.
+            $durationSlots = ($jadwal->mataKuliah->sks == 4) ? 3 : 2;
+
+            // Mark upcoming slots as SKIP
+            if ($durationSlots > 1) {
+                // Skips $durationSlots - 1 next slots
                 $currentIndex = array_search($jId, $jamIndices);
-                if ($currentIndex !== false && isset($jamIndices[$currentIndex + 1])) {
-                    $nextJamId = $jamIndices[$currentIndex + 1];
-                    $grid[$hId][$nextJamId][$rId] = 'SKIP';
+                if ($currentIndex !== false) {
+                    for ($k = 1; $k < $durationSlots; $k++) {
+                        if (isset($jamIndices[$currentIndex + $k])) {
+                            $nextJamId = $jamIndices[$currentIndex + $k];
+                            $grid[$hId][$nextJamId][$rId] = 'SKIP';
+                        }
+                    }
                 }
             }
         }
@@ -183,6 +191,8 @@ class ABCController extends Controller
             'grid' => $grid
         ];
 
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\JadwalExport($data, $history->judul), 'Jadwal-' . $history->id . '.xlsx');
+        $rawFilename = sprintf('Jadwal %s semester %s %s.xlsx', $history->judul, $history->semester, $history->tahun_ajaran);
+        $filename = str_replace(['/', '\\'], '-', $rawFilename);
+        return Excel::download(new JadwalExport($data, $history->judul), $filename);
     }
 }

@@ -57,7 +57,7 @@
                         @if($cellData === 'SKIP')
                             {{-- Do nothing, covered by rowspan --}}
                         @elseif(is_object($cellData))
-                            <td rowspan="{{ $cellData->mataKuliah->sks == 4 ? 2 : 1 }}" style="background-color: {{ $bgColor }}; border: 1px solid #000000; text-align: center; vertical-align: middle;">
+                            <td rowspan="{{ $cellData->mataKuliah->sks == 4 ? 3 : 2 }}" style="background-color: {{ $bgColor }}; border: 1px solid #000000; text-align: center; vertical-align: middle;">
                                 <b>{{ $cellData->mataKuliah->nama_matkul }}</b>
                                 <br>
                                 <i>{{ $cellData->dosen->nama_dosen }}</i>
