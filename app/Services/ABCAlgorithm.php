@@ -215,15 +215,19 @@ class ABCAlgorithm
         $dosenUsageCount[$uniqueDosenId] = 1;
       }
 
+      $assignedHariIds = []; // Track days used for this course
+
       for ($k = 0; $k < $occurrences; $k++) {
         // PERUBAHAN LOGIKA DURASI (1 Slot = 1 Jam)
         // 4 SKS = 3 Jam (3 Slot) -- Permintaan user
         // 2 SKS = 2 Jam (2 Slot)
         $durationSlots = ($mk->sks == 4) ? 3 : 2;
 
-        // Acak Slot
-        $randomAssignment = $this->getRandomAssignment($mk, $durationSlots, $uniqueDosenId);
+        // Acak Slot (Hindari hari yang sama untuk sesi ke-2 dst)
+        $randomAssignment = $this->getRandomAssignment($mk, $durationSlots, $uniqueDosenId, $assignedHariIds);
+
         $scheduleData[] = $randomAssignment;
+        $assignedHariIds[] = $randomAssignment['hari_id'];
       }
     }
 
@@ -264,10 +268,20 @@ class ABCAlgorithm
     return array_unique($indices);
   }
 
-  protected function getRandomAssignment($mk, $durationSlots, $dosenId)
+  protected function getRandomAssignment($mk, $durationSlots, $dosenId, $excludedHariIds = [])
   {
-    // Pilih Hari Secara Acak
-    $hari = $this->data['hari']->random();
+    // Pilih Hari Secara Acak (dengan pengecualian)
+    if (!empty($excludedHariIds)) {
+      $availableDays = $this->data['hari']->whereNotIn('id', $excludedHariIds);
+      if ($availableDays->isEmpty()) {
+        // Fallback: Jika semua hari dikecualikan (sangat jarang terjadi kecuali data sedikit), pakai semua
+        $hari = $this->data['hari']->random();
+      } else {
+        $hari = $availableDays->random();
+      }
+    } else {
+      $hari = $this->data['hari']->random();
+    }
 
     // Pilih Ruangan Secara Acak
     $ruangan = $this->data['ruangan']->random();
@@ -368,6 +382,26 @@ class ABCAlgorithm
     } else {
       // Ubah Waktu
       $hari = $this->data['hari']->random();
+
+      // CONSTRAINT 4 SKS: Jika ini mata kuliah 4 sks, cek sesi lainnya.
+      // Sesi ini dan sesi lainnya TIDAK BOLEH di hari yang sama.
+      if ($item['sks'] == 4) {
+        // Cari sibling
+        foreach ($newScheduleData as $otherIndex => $otherItem) {
+          if ($otherIndex != $mutationIndex && $otherItem['mata_kuliah_id'] == $item['mata_kuliah_id']) {
+            // Jika hari baru sama dengan hari sibling, coba cari hari lain
+            if ($hari->id == $otherItem['hari_id']) {
+              // Ambil hari lain yang bukan $otherItem['hari_id']
+              $availableDays = $this->data['hari']->where('id', '!=', $otherItem['hari_id']);
+              if ($availableDays->isNotEmpty()) {
+                $hari = $availableDays->random();
+              }
+            }
+            break; // Hanya ada 1 sibling (total 2 sesi)
+          }
+        }
+      }
+
       $item['hari_id'] = $hari->id;
 
       // Acak ulang jam yang valid

@@ -29,15 +29,15 @@ class MenuHelper
                 // 'path' => '/form-elements',
                 'path' => '/generate-jadwal',
             ],
-            [
-                'name' => 'Modifikasi Jadwal',
-                'icon' => 'pages',
-                'path' => '/basic-tables',
+            // [
+            //     'name' => 'Modifikasi Jadwal',
+            //     'icon' => 'pages',
+            //     'path' => '/basic-tables',
                 // 'subItems' => [
                 //     ['name' => 'Blank Page', 'path' => '/blank', 'pro' => false],
                 //     ['name' => '404 Error', 'path' => '/error-404', 'pro' => false]
                 // ],
-            ],
+            // ],
             // [
             //     'name' => 'Tables',
             //     'icon' => 'tables',
@@ -51,11 +51,11 @@ class MenuHelper
     public static function getOthersItems()
     {
         return [
-            [
-                'icon' => 'user-profile',
-                'name' => 'Daftar Pengguna',
-                'path' => '/profile',
-            ],
+            // [
+            //     'icon' => 'user-profile',
+            //     'name' => 'Daftar Pengguna',
+            //     'path' => '/profile',
+            // ],
             [
                 'icon' => 'charts',
                 'name' => 'Log Pengguna',
