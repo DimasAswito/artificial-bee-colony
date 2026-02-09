@@ -49,7 +49,7 @@
             <span class="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</span>
         </div>
 
-        <!-- Menu Items -->
+        {{-- <!-- Menu Items -->
         <ul class="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 dark:border-gray-800">
             @php
                 $menuItems = [
@@ -105,7 +105,7 @@
                     </a>
                 </li>
             @endforeach
-        </ul>
+        </ul> --}}
 
         <!-- Sign Out -->
         <form method="POST" action="{{ route('logout') }}">
