@@ -144,6 +144,17 @@
                                     class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
                                 <p class="mt-1 text-xs text-gray-500">Batas pengulangan pencarian solusi. Rekomendasi: 1000.</p>
                             </div>
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Durasi Mata Kuliah 4 SKS <span class="text-red-500">*</span>
+                                </label>
+                                <select x-model="form.durasi_4_sks" required
+                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                    <option value="3">3 Jam</option>
+                                    <option value="4">4 Jam</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Pilih durasi pertemuan untuk MK 4 SKS per sesi.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -267,7 +278,10 @@
                     tahun_ajaran: '{{ date("Y") . "/" . (date("Y")+1) }}',
                     semester: 'Ganjil',
                     population: 50,
-                    max_cycles: 1000
+                    semester: 'Ganjil',
+                    population: 50,
+                    max_cycles: 1000,
+                    durasi_4_sks: 3 // Default 3 Jam
                 },
                 isGenerating: false,
                 

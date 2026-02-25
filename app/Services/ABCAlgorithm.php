@@ -7,257 +7,334 @@ use App\Models\Dosen;
 use App\Models\Ruangan;
 use App\Models\Hari;
 use App\Models\Jam;
-use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class ABCAlgorithm
 {
   protected $populationSize;
   protected $maxCycles;
   protected $semester;
-  protected $jumatId; // Cache ID Jumat
-  protected $limit; // Batas limit untuk lebah pramuka (scout bees)
-  protected $data = []; // Cache data master
-  /** @var \Illuminate\Support\Collection */
-  protected $freeDosens; // Dosen yang BELUM ditugaskan ke mata kuliah apapun
+  protected $durasi4Sks;
+  protected $limit;
 
-  // Struktur Hasil:
-  // [
-  //    [ 'mata_kuliah_id' => ..., 'dosen_id' => ..., 'ruangan_id' => ..., 'hari_id' => ..., 'jam_id' => ... ]
-  // ]
+  protected $data = [];
 
-  public function __construct($populationSize = 50, $maxCycles = 1000, $semester = 'Ganjil')
+  public function __construct($populationSize = 50, $maxCycles = 1000, $semester = 'Ganjil', $durasi4Sks = 3)
   {
     $this->populationSize = $populationSize;
     $this->maxCycles = $maxCycles;
     $this->semester = $semester;
-    $this->limit = $populationSize * 5; // Heuristik: limit bergantung pada populasi
-
-    // Get Jumat ID dynamically (or fallback to 5)
-    $hariJumat = \App\Models\Hari::where('nama_hari', 'Jumat')->first();
-    $this->jumatId = $hariJumat ? $hariJumat->id : 5;
+    $this->durasi4Sks = $durasi4Sks;
+    $this->limit = $populationSize * 5;
 
     $this->loadData();
   }
 
   protected function loadData()
   {
-    // Filter Mata Kuliah berdasarkan Semester
-    $semesterType = $this->semester; // 'Ganjil' or 'Genap'
-
     $this->data['mata_kuliah'] = MataKuliah::where('status', 'Active')
       ->with('dosen')
       ->get()
-      ->filter(function ($mk) use ($semesterType) {
-        // Cek apakah semester ganjil atau genap
-        // Asumsi semester adalah string numerik "1", "2", "3"
+      ->filter(function ($mk) {
         $sem = (int) $mk->semester;
-        if ($semesterType === 'Ganjil') {
-          return $sem % 2 != 0;
-        } else {
-          return $sem % 2 == 0;
-        }
+        return $this->semester === 'Ganjil' ? ($sem % 2 != 0) : ($sem % 2 == 0);
       })
-      ->values(); // Reset keys after filter
+      ->values();
 
-    // Batasan: Dosen yang sudah ditugaskan untuk mata kuliah tertentu TIDAK BISA mengajar mata kuliah lain (yang belum ada tugasnya).
-    // 1. Ambil ID semua Dosen yang sudah Ditugaskan
+    // Batasan: Dosen yang sudah ditugaskan untuk mata kuliah tertentu.
+    // Dosen yang TIDAK ada di assignedDosenIds dianggap "Dosen Kosong" yang bisa diset otomatis.
     $allMataKuliah = MataKuliah::where('status', 'Active')->get();
     $assignedDosenIds = $allMataKuliah->pluck('dosen_id')->filter()->unique();
 
     $this->data['dosen'] = Dosen::where('status', 'Active')->get();
 
-    // 2. Filter Dosen Bebas (Dosen Aktif yang TIDAK ada di assignedDosenIds)
-    $this->freeDosens = $this->data['dosen']->whereNotIn('id', $assignedDosenIds)->values();
+    // Simpan Dosen Bebas (Dosen Aktif yang TIDAK ada di assignedDosenIds)
+    $this->data['free_dosens'] = $this->data['dosen']->whereNotIn('id', $assignedDosenIds)->values();
 
     $this->data['ruangan'] = Ruangan::where('status', 'Active')->get();
     $this->data['hari'] = Hari::where('status', 'Active')->get();
-    $this->data['jam'] = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->values(); // Ensure strictly ordered and indexed
+    $this->data['jam'] = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->values();
   }
 
   public function run()
   {
-    // 1. Inisialisasi Populasi
-    $population = $this->initializePopulation();
+    // 1. Initial Check
+    if ($this->data['mata_kuliah']->isEmpty() || $this->data['ruangan']->isEmpty() || $this->data['hari']->isEmpty() || $this->data['jam']->isEmpty()) {
+      return ['schedule' => [], 'fitness' => 0, 'iterations' => 0];
+    }
+
+    // 2. Initialize Population
+    $population = [];
+    for ($i = 0; $i < $this->populationSize; $i++) {
+      $population[] = ['data' => $this->generateRandomSchedule(), 'trial' => 0];
+    }
+
     $bestSolution = $this->getBestSolution($population);
+    $cyclesWithoutConflict = 0;
 
     for ($cycle = 0; $cycle < $this->maxCycles; $cycle++) {
-
-      // 2. Fase Lebah Pekerja (Employed Bees)
-      foreach ($population as $index => $schedule) {
-        $newSchedule = $this->mutate($schedule);
-
-        $currentFitness = $this->calculateFitness($schedule);
-        $newFitness = $this->calculateFitness($newSchedule);
-
-        if ($newFitness < $currentFitness) {
-          $population[$index] = $newSchedule;
-          $population[$index]['trial_counter'] = 0;
+      // 3. Employed Bees Phase
+      foreach ($population as $i => $schedule) {
+        $newScheduleData = $this->mutate($schedule['data']);
+        if ($this->calculateFitness($newScheduleData) < $this->calculateFitness($schedule['data'])) {
+          $population[$i] = ['data' => $newScheduleData, 'trial' => 0];
         } else {
-          $population[$index]['trial_counter']++;
+          $population[$i]['trial']++;
         }
       }
 
-      // 3. Fase Lebah Pengamat (Onlooker Bees)
-      // Pilih berdasarkan probabilitas (Roulette Wheel?) atau probabilitas standar ABC
-      // Untuk minimasi, probabilitas sebanding dengan (1 / (1 + fitness))
-      $probabilities = $this->calculateProbabilities($population);
-
-      // Onlooker memilih solusi untuk ditingkatkan
-      // Disederhanakan: Jalankan sebanyak populationSize
+      // 4. Onlooker Bees Phase
+      $probs = $this->calculateProbabilities($population);
       for ($i = 0; $i < $this->populationSize; $i++) {
-        $selectedIndex = $this->selectByProbability($probabilities);
-        $selectedSchedule = $population[$selectedIndex];
-
-        $newSchedule = $this->mutate($selectedSchedule);
-        $currentFitness = $this->calculateFitness($selectedSchedule);
-        $newFitness = $this->calculateFitness($newSchedule);
-
-        if ($newFitness < $currentFitness) {
-          $population[$selectedIndex] = $newSchedule;
-          $population[$selectedIndex]['trial_counter'] = 0;
+        $idx = $this->selectByProbability($probs);
+        $newScheduleData = $this->mutate($population[$idx]['data']);
+        if ($this->calculateFitness($newScheduleData) < $this->calculateFitness($population[$idx]['data'])) {
+          $population[$idx] = ['data' => $newScheduleData, 'trial' => 0];
         } else {
-          $population[$selectedIndex]['trial_counter']++;
+          $population[$idx]['trial']++;
         }
       }
 
-      // 4. Fase Lebah Pramuka (Scout Bees)
-      foreach ($population as $index => $schedule) {
-        if ($schedule['trial_counter'] > $this->limit) {
-          $population[$index] = $this->generateRandomSchedule(); // Ganti dengan random baru
+      // 5. Scout Bees Phase
+      foreach ($population as $i => $schedule) {
+        if ($schedule['trial'] > $this->limit) {
+          $population[$i] = ['data' => $this->generateRandomSchedule(), 'trial' => 0];
         }
       }
 
-      // 5. Simpan Solusi Terbaik
+      // 6. Update Best Solution
       $currentBest = $this->getBestSolution($population);
-      if ($this->calculateFitness($currentBest) < $this->calculateFitness($bestSolution)) {
+      if ($this->calculateFitness($currentBest['data']) < $this->calculateFitness($bestSolution['data'])) {
         $bestSolution = $currentBest;
       }
 
-      // Cek Terminasi: Jika fitness 0 ditemukan, berhenti lebih awal?
-      if ($this->calculateFitness($bestSolution) == 0) break;
+      // 7. Termination Condition
+      // Tabrakan (Konflik) digandakan 1 Juta poin. Jika < 1 Juta, berarti solusi bebas konflik.
+      $bestFitness = $this->calculateFitness($bestSolution['data']);
+      if ($bestFitness < 1000000) {
+        $cyclesWithoutConflict++;
+        // Beri waktu 50 cycle ekstra untuk lebah "memampatkan" jadwal ke pagi hari
+        if ($cyclesWithoutConflict > 50) break;
+      } else {
+        $cyclesWithoutConflict = 0; // Reset
+      }
     }
 
+    // 8. Hitung murni jumlah tabrakan untuk ditampilkan ke user
+    $finalConflicts = $this->countConflicts($bestSolution['data']);
+
     return [
-      'schedule' => $bestSolution['data'],
-      'fitness' => $this->calculateFitness($bestSolution),
-      'iterations' => $this->maxCycles // Atau jumlah siklus aktual
+      'schedule'   => $bestSolution['data'],
+      'fitness'    => $this->calculateFitness($bestSolution['data']),
+      'conflicts'  => $finalConflicts,
+      'iterations' => $cycle
     ];
   }
 
-  protected function initializePopulation()
+  protected function countConflicts($scheduleData)
   {
-    $population = [];
-    for ($i = 0; $i < $this->populationSize; $i++) {
-      $population[] = $this->generateRandomSchedule();
+    $conflictsFast = 0;
+    $n = count($scheduleData);
+
+    for ($i = 0; $i < $n; $i++) {
+      $a = $scheduleData[$i];
+      for ($j = $i + 1; $j < $n; $j++) {
+        $b = $scheduleData[$j];
+        if ($a['hari_id'] == $b['hari_id']) {
+          $aEnd = $a['jam_index'] + $a['duration_slots'];
+          $bEnd = $b['jam_index'] + $b['duration_slots'];
+          if ($a['jam_index'] < $bEnd && $b['jam_index'] < $aEnd) {
+            if ($a['ruangan_id'] == $b['ruangan_id']) $conflictsFast++;
+            if (!empty($a['dosen_id']) && $a['dosen_id'] == $b['dosen_id']) $conflictsFast++;
+          }
+        }
+      }
     }
-    return $population;
+    return $conflictsFast;
   }
 
   protected function generateRandomSchedule()
   {
-    // Satu individu (Jadwal) adalah sekumpulan Penugasan.
-    // Kita iterasi melalui SEMUA Mata Kuliah yang AKTIF untuk memberikan slot.
-    $scheduleData = [];
-    $dosenUsageCount = [];
-
-    // Inisialisasi usage count
-    if ($this->data['dosen']->isNotEmpty()) {
-      foreach ($this->data['dosen'] as $dosen) {
-        $dosenUsageCount[$dosen->id] = 0;
-      }
-    }
+    $schedule = [];
 
     foreach ($this->data['mata_kuliah'] as $mk) {
-      // Aturan: 4 SKS -> 2 Sesi (2 blok masing-masing 2 jam, atau 1 blok 4 jam??)
-
       $occurrences = ($mk->sks == 4) ? 2 : 1;
+      $durationSlots = ($mk->sks == 4) ? $this->durasi4Sks : 2;
 
-      // Tentukan Dosen untuk Instance Mata Kuliah ini
-      // Jika Mata Kuliah memiliki dosen tetap, gunakan itu.
-      // Jika Mata Kuliah memiliki dosen NULL, pilih satu secara ACAK tapi tetap konsisten untuk semua kemunculan mapel ini di jadwal ini.
-      $uniqueDosenId = $mk->dosen_id;
-      if (is_null($uniqueDosenId)) {
-        // Strategi Baru "Cara Cepat": Load Balanced Random Selection
-        // Pilih dosen yang jumlah jam mengajarnya PALING SEDIKIT saat ini
+      // Konstrain B2: Mata kuliah HANYA diajar dosen pengampunya
+      $dosenId = $mk->dosen_id;
 
-        $candidates = $this->freeDosens->isNotEmpty() ? $this->freeDosens : $this->data['dosen'];
-        if ($candidates->isEmpty()) continue;
-
-        // Cari Usage Terkecil
-        $minUsage = PHP_INT_MAX;
-        foreach ($candidates as $cand) {
-          $id = is_array($cand) ? $cand['id'] : $cand->id;
-          $usage = $dosenUsageCount[$id] ?? 0;
-          if ($usage < $minUsage) {
-            $minUsage = $usage;
-          }
+      // Jika dosen kosong di DB, tugaskan dosen bebas secara acak
+      if (!$dosenId) {
+        if ($this->data['free_dosens']->isNotEmpty()) {
+          $dosenId = $this->data['free_dosens']->random()->id;
+        } else {
+          // Fallback terakhir jika anehnya tidak ada dosen bebas, ambil dosen sembarang
+          $dosenId = $this->data['dosen']->random()->id;
         }
-
-        // Filter Candidate dengan Minimum Usage
-        $bestCandidates = [];
-        foreach ($candidates as $cand) {
-          $id = is_array($cand) ? $cand['id'] : $cand->id;
-          $usage = $dosenUsageCount[$id] ?? 0;
-          if ($usage == $minUsage) {
-            $bestCandidates[] = $cand;
-          }
-        }
-
-        // Pilih satu secara acak dari yang terbaik
-        $randomDosen = $bestCandidates[array_rand($bestCandidates)];
-        $uniqueDosenId = is_array($randomDosen) ? $randomDosen['id'] : $randomDosen->id;
       }
 
-      // Update Usage Count untuk Dosen Terpilih
-      if (isset($dosenUsageCount[$uniqueDosenId])) {
-        $dosenUsageCount[$uniqueDosenId]++;
-      } else {
-        $dosenUsageCount[$uniqueDosenId] = 1;
-      }
+      $usedHariIds = [];
 
-      $assignedHariIds = []; // Track days used for this course
-
-      for ($k = 0; $k < $occurrences; $k++) {
-        // PERUBAHAN LOGIKA DURASI (1 Slot = 1 Jam)
-        // 4 SKS = 3 Jam (3 Slot) -- Permintaan user
-        // 2 SKS = 2 Jam (2 Slot)
-        $durationSlots = ($mk->sks == 4) ? 3 : 2;
-
-        // Acak Slot (Hindari hari yang sama untuk sesi ke-2 dst)
-        $randomAssignment = $this->getRandomAssignment($mk, $durationSlots, $uniqueDosenId, $assignedHariIds);
-
-        $scheduleData[] = $randomAssignment;
-        $assignedHariIds[] = $randomAssignment['hari_id'];
+      for ($i = 0; $i < $occurrences; $i++) {
+        $assignment = $this->getRandomAssignment($mk->id, $dosenId, $durationSlots, $usedHariIds);
+        if ($assignment) {
+          $schedule[] = $assignment;
+          // Konstrain B3: 4 SKS (2 sesi) tidak boleh di hari yang sama
+          $usedHariIds[] = $assignment['hari_id'];
+        }
       }
     }
 
-    return [
-      'data' => $scheduleData,
-      'trial_counter' => 0
-    ];
+    return $schedule;
   }
 
-  protected function getConflictingIndices($assignments)
+  protected function getRandomAssignment($mkId, $dosenId, $durationSlots, $excludedHariIds = [])
+  {
+    $availableDays = $this->data['hari']->whereNotIn('id', $excludedHariIds);
+
+    // Fallback jika anehnya semua hari ter-exclude (harusnya tidak mungkin jika hari cukup)
+    if ($availableDays->isEmpty()) {
+      $availableDays = $this->data['hari'];
+    }
+
+    // Acak urutan hari untuk dicoba
+    $shuffledDays = $availableDays->shuffle();
+
+    foreach ($shuffledDays as $hari) {
+      $validJamIndices = $this->getValidJamIndices($hari, $durationSlots);
+
+      if (!empty($validJamIndices)) {
+        // Heuristik C1: Prioritas Pagi (Indeks indeks kecil)
+        sort($validJamIndices);
+
+        // Gunakan fungsi eksponensial (r^3) agar probabilitas memilih angka kecil jauh lebih tinggi
+        $r = mt_rand(0, 1000) / 1000;
+        $biasedIndex = floor(pow($r, 3) * count($validJamIndices));
+
+        // Pastikan aman tidak Out of Bounds
+        $biasedIndex = min(count($validJamIndices) - 1, max(0, $biasedIndex));
+        $startIdx = $validJamIndices[$biasedIndex];
+
+        $ruangan = $this->data['ruangan']->random();
+
+        return [
+          'mata_kuliah_id' => $mkId,
+          'dosen_id'       => $dosenId,
+          'ruangan_id'     => $ruangan->id,
+          'hari_id'        => $hari->id,
+          'jam_id'         => $this->data['jam'][$startIdx]->id,
+          'jam_index'      => $startIdx,
+          'duration_slots' => $durationSlots
+        ];
+      }
+    }
+
+    return null;
+  }
+
+  protected function getValidJamIndices($hari, $durationSlots)
+  {
+    $valid = [];
+    $jamCount = count($this->data['jam']);
+
+    // Cek semua kemungkinan index awal yang cukup untuk menampung durasi kelas
+    for ($start = 0; $start <= $jamCount - $durationSlots; $start++) {
+      if ($this->isValidTimeBlock($hari, $start, $durationSlots)) {
+        $valid[] = $start;
+      }
+    }
+    return $valid;
+  }
+
+  protected function isValidTimeBlock($hari, $startIdx, $durationSlots)
+  {
+    $startJam = $this->data['jam'][$startIdx];
+    $endJam = $this->data['jam'][$startIdx + $durationSlots - 1];
+
+    $mulai = Carbon::parse($startJam->jam_mulai);
+    $selesai = Carbon::parse($endJam->jam_selesai);
+
+    // Konstrain B4: Cek strict barrier jam 12:00 (Istirahat Siang)
+    // Kelas tidak boleh menyeberangi jam 12:00. Jika mulai sebelum 12 dan selesai sesudah 12 = Invalid.
+    $jam12 = Carbon::parse('12:00:00');
+    if ($mulai < $jam12 && $selesai > $jam12) {
+      return false;
+    }
+
+    // Konstrain B5: Aturan Sholat Jumat (11:00 - 13:00)
+    if ($hari->nama_hari === 'Jumat') {
+      $jumatStart = Carbon::parse('11:00:00');
+      $jumatEnd = Carbon::parse('13:00:00');
+
+      // Logika Irisan Waktu (Overlap)
+      if ($mulai < $jumatEnd && $selesai > $jumatStart) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  protected function mutate($scheduleData)
+  {
+    if (empty($scheduleData)) return $scheduleData;
+
+    // Conflict-Directed Mutation: Prioritaskan mengubah kelas yang sedang tabrakan
+    $conflictingIndices = $this->getConflictingIndices($scheduleData);
+    $mutateIdx = !empty($conflictingIndices)
+      ? $conflictingIndices[array_rand($conflictingIndices)]
+      : array_rand($scheduleData);
+
+    $item = $scheduleData[$mutateIdx];
+
+    // 50% ganti Ruangan, 50% ganti Waktu
+    if (mt_rand(0, 1) == 0) {
+      $item['ruangan_id'] = $this->data['ruangan']->random()->id;
+    } else {
+      // Untuk merubah waktu, kita harus mengecek sibling session hari (jika 4 SKS)
+      $excludedHariIds = [];
+      foreach ($scheduleData as $idx => $other) {
+        if ($idx != $mutateIdx && $other['mata_kuliah_id'] == $item['mata_kuliah_id']) {
+          $excludedHariIds[] = $other['hari_id'];
+        }
+      }
+
+      $newAssignment = $this->getRandomAssignment($item['mata_kuliah_id'], $item['dosen_id'], $item['duration_slots'], $excludedHariIds);
+      if ($newAssignment) {
+        $item['hari_id']   = $newAssignment['hari_id'];
+        $item['jam_id']    = $newAssignment['jam_id'];
+        $item['jam_index'] = $newAssignment['jam_index'];
+      }
+    }
+
+    $scheduleData[$mutateIdx] = $item;
+    return $scheduleData;
+  }
+
+  protected function getConflictingIndices($scheduleData)
   {
     $indices = [];
-    $n = count($assignments);
+    $n = count($scheduleData);
 
     for ($i = 0; $i < $n; $i++) {
       for ($j = $i + 1; $j < $n; $j++) {
-        $a = $assignments[$i];
-        $b = $assignments[$j];
+        $a = $scheduleData[$i];
+        $b = $scheduleData[$j];
 
-        // Cek Hari Sama
         if ($a['hari_id'] == $b['hari_id']) {
-          $aStart = $a['jam_index'];
-          $aEnd = $aStart + $a['duration_slots'];
-          $bStart = $b['jam_index'];
-          $bEnd = $bStart + $b['duration_slots'];
+          $aEnd = $a['jam_index'] + $a['duration_slots'];
+          $bEnd = $b['jam_index'] + $b['duration_slots'];
 
-          // Cek Irisan Waktu
-          if ($aStart < $bEnd && $bStart < $aEnd) {
-            // Konflik Ruangan ATAU Dosen
-            if ($a['ruangan_id'] == $b['ruangan_id'] || $a['dosen_id'] == $b['dosen_id']) {
+          // Cek Irisan/Tabrakan Waktu Jam
+          if ($a['jam_index'] < $bEnd && $b['jam_index'] < $aEnd) {
+            // Jika jam sama-sama bertumpuk, cek apakah di ruangan yang sama
+            if ($a['ruangan_id'] == $b['ruangan_id']) {
+              $indices[] = $i;
+              $indices[] = $j;
+            }
+            // Aturan B2/Dosen: Atau dosen yang sama
+            if (!empty($a['dosen_id']) && $a['dosen_id'] == $b['dosen_id']) {
               $indices[] = $i;
               $indices[] = $j;
             }
@@ -265,272 +342,68 @@ class ABCAlgorithm
         }
       }
     }
+
     return array_unique($indices);
   }
 
-  protected function getRandomAssignment($mk, $durationSlots, $dosenId, $excludedHariIds = [])
+  protected function calculateFitness($scheduleData)
   {
-    // Pilih Hari Secara Acak (dengan pengecualian)
-    if (!empty($excludedHariIds)) {
-      $availableDays = $this->data['hari']->whereNotIn('id', $excludedHariIds);
-      if ($availableDays->isEmpty()) {
-        // Fallback: Jika semua hari dikecualikan (sangat jarang terjadi kecuali data sedikit), pakai semua
-        $hari = $this->data['hari']->random();
-      } else {
-        $hari = $availableDays->random();
-      }
-    } else {
-      $hari = $this->data['hari']->random();
-    }
-
-    // Pilih Ruangan Secara Acak
-    $ruangan = $this->data['ruangan']->random();
-
-    // Pilih Jam Mulai Secara Acak (Jam)
-    // Harus memastikan ada cukup slot yang berurutan
-    // Seeder Jam: 4 record (id biasanya 1,2,3,4).
-    // Jika durasi 2 slot (4 jam), mulai yang valid: Slot 1 (08-10) -> Berakhir 12:00. Slot 2 -> Berakhir 14:00 (Istirahat?).
-    // Kita perlu mengecek apakah kita bisa memilih jam berurutan.
-    // Karena ID DB mungkin tidak berurutan atau dijamin, kita gunakan index array dari data yang dimuat.
-
-    $jamCount = $this->data['jam']->count();
-    // GUNAKAN LOGIKA VALID INDICES (INLINE)
-    // Cegah menyeberang istirahat (Index 3 = 11-12, Index 4 = 13-14)
-    // Blok Pagi: 0, 1, 2, 3
-    // Blok Siang: 4, 5, 6, 7
-
-    $validStartIndices = [];
-    $range = range(0, $jamCount - $durationSlots);
-
-    foreach ($range as $start) {
-      $end = $start + $durationSlots;
-      // Jika start di Pagi (<=3), End harus <= 4 (artinya max sampai jam 12)
-      // Jika start di Siang (>=4), aman
-
-      $isCrossingBreak = false;
-      // USER REQUEST: DISABLE BREAK CONSTRAINT (9 SLOTS CONTINUOUS)
-      // if ($start <= 3 && $end > 4) {
-      //   $isCrossingBreak = true;
-      // }
-
-      // FRIDAY PRAYER EXCEPTION: Forbidden slots 3 (11:00-12:00) and 4 (12:00-13:00)
-      if ($hari->id == $this->jumatId) {
-        for ($s = $start; $s < $end; $s++) {
-          if ($s == 3 || $s == 4) {
-            $isCrossingBreak = true;
-            break;
-          }
-        }
-      }
-
-      if (!$isCrossingBreak) {
-        $validStartIndices[] = $start;
-      }
-    }
-
-    if (empty($validStartIndices)) {
-      // Fallback: Pilih sembarang jika terpaksa
-      $startIndex = rand(0, $jamCount - 1);
-    } else {
-      $startIndex = $validStartIndices[array_rand($validStartIndices)];
-    }
-
-    // Jam Terpilih (Simpan hanya JAM ID mulai, logika menyiratkan urutan)
-    $startJam = $this->data['jam'][$startIndex];
-
-    return [
-      'mata_kuliah_id' => $mk->id,
-      'dosen_id' => $dosenId, // Batasan: Dosen yang Ditugaskan (Tetap atau Acak)
-      'ruangan_id' => $ruangan->id,
-      'hari_id' => $hari->id,
-      'jam_id' => $startJam->id,
-      // Meta data untuk pengecekan
-      'sks' => $mk->sks,
-      'duration_slots' => $durationSlots,
-      'jam_index' => $startIndex // Pembantu untuk mencari jam berurutan
-    ];
-  }
-
-  protected function mutate($schedule)
-  {
-    // Ubah SATU penugasan dalam jadwal
-    $newScheduleData = $schedule['data'];
-
-    // LOGIKA MUTASI PINTAR (Conflict-Directed Mutation)
-    // 1. Identifikasi item yang mengalami konflik
-    $conflictingIndices = $this->getConflictingIndices($newScheduleData);
-
-    // 2. Jika ada konflik, prioritaskan mutasi pada item tersebut
-    if (!empty($conflictingIndices)) {
-      $mutationIndex = $conflictingIndices[array_rand($conflictingIndices)];
-    } else {
-      // Jika tidak ada konflik, mutasi acak
-      $mutationIndex = array_rand($newScheduleData);
-    }
-
-    $item = $newScheduleData[$mutationIndex];
-    // Mutasi: Pilih Ruangan, Hari, atau Waktu acak baru.
-    // Kita tidak memutasi relasi Mata Kuliah/Dosen karena itu tetap.
-
-    // Strategi Mutasi Sederhana:
-    // 1. Ubah Ruangan
-    // 2. Ubah Waktu (Hari + Jam)
-
-    if (rand(0, 1) == 0) {
-      // Ubah Ruangan
-      $item['ruangan_id'] = $this->data['ruangan']->random()->id;
-    } else {
-      // Ubah Waktu
-      $hari = $this->data['hari']->random();
-
-      // CONSTRAINT 4 SKS: Jika ini mata kuliah 4 sks, cek sesi lainnya.
-      // Sesi ini dan sesi lainnya TIDAK BOLEH di hari yang sama.
-      if ($item['sks'] == 4) {
-        // Cari sibling
-        foreach ($newScheduleData as $otherIndex => $otherItem) {
-          if ($otherIndex != $mutationIndex && $otherItem['mata_kuliah_id'] == $item['mata_kuliah_id']) {
-            // Jika hari baru sama dengan hari sibling, coba cari hari lain
-            if ($hari->id == $otherItem['hari_id']) {
-              // Ambil hari lain yang bukan $otherItem['hari_id']
-              $availableDays = $this->data['hari']->where('id', '!=', $otherItem['hari_id']);
-              if ($availableDays->isNotEmpty()) {
-                $hari = $availableDays->random();
-              }
-            }
-            break; // Hanya ada 1 sibling (total 2 sesi)
-          }
-        }
-      }
-
-      $item['hari_id'] = $hari->id;
-
-      // Acak ulang jam yang valid
-      $jamCount = $this->data['jam']->count();
-      $durationSlots = $item['duration_slots'];
-
-      $validStartIndices = [];
-      $range = range(0, $jamCount - $durationSlots);
-
-      foreach ($range as $start) {
-        $end = $start + $durationSlots;
-        // Cek Crossing Break (Pagi -> Siang) (Inline Logic)
-        // USER REQUEST: DISABLE BREAK CONSTRAINT
-        // if ($start <= 3 && $end > 4) {
-        //   continue; // Skip
-        // }
-
-        // FRIDAY PRAYER EXCEPTION
-        if ($hari->id == $this->jumatId) {
-          $hitFridayBreak = false;
-          for ($s = $start; $s < $end; $s++) {
-            if ($s == 3 || $s == 4) {
-              $hitFridayBreak = true;
-              break;
-            }
-          }
-          if ($hitFridayBreak) continue;
-        }
-
-        $validStartIndices[] = $start;
-      }
-
-      if (!empty($validStartIndices)) {
-        $startIndex = $validStartIndices[array_rand($validStartIndices)];
-        $item['jam_id'] = $this->data['jam'][$startIndex]->id;
-        $item['jam_index'] = $startIndex;
-      }
-    }
-
-    $newScheduleData[$mutationIndex] = $item;
-
-    return [
-      'data' => $newScheduleData,
-      'trial_counter' => $schedule['trial_counter'] // Reset counter ditangani di loop utama
-    ];
-  }
-
-  protected function calculateFitness($schedule)
-  {
-    $conflicts = 0;
-    $assignments = $schedule['data'];
-    $n = count($assignments);
+    $conflictsFast = 0;
+    $timePenalty = 0;
+    $n = count($scheduleData);
 
     for ($i = 0; $i < $n; $i++) {
+      $a = $scheduleData[$i];
+
+      // Evaluasi D: Penalty Waktu (semakin sore indexnya, semakin tinggi poinnya/buruk)
+      $timePenalty += $a['jam_index'];
+
       for ($j = $i + 1; $j < $n; $j++) {
-        $a = $assignments[$i];
-        $b = $assignments[$j];
+        $b = $scheduleData[$j];
 
-        // Cek Tumpang Tindih Waktu
-        // Hari Sama
         if ($a['hari_id'] == $b['hari_id']) {
-          // Cek Tumpang Tindih Jam
-          // Rentang A: [mulai, mulai + durasi)
-          $aStart = $a['jam_index'];
-          $aEnd = $aStart + $a['duration_slots'];
+          $aEnd = $a['jam_index'] + $a['duration_slots'];
+          $bEnd = $b['jam_index'] + $b['duration_slots'];
 
-          $bStart = $b['jam_index'];
-          $bEnd = $bStart + $b['duration_slots'];
-
-          if ($aStart < $bEnd && $bStart < $aEnd) {
-            // KONFLIK WAKTU TERDETEKSI
-
-            // Aturan 1: Konflik Ruangan (Ruangan Sama pada Waktu Sama)
-            if ($a['ruangan_id'] == $b['ruangan_id']) {
-              $conflicts++;
-            }
-
-            // Aturan 2: Konflik Dosen (Dosen Sama pada Waktu Sama)
-            if ($a['dosen_id'] == $b['dosen_id']) {
-              $conflicts++;
-            }
-
-            // Aturan 3: Parameter "Mata kuliah 4 SKS ... bisa digunakan oleh dosen yg tertulis" adalah struktural (ditangani di init).
+          // Overlap
+          if ($a['jam_index'] < $bEnd && $b['jam_index'] < $aEnd) {
+            if ($a['ruangan_id'] == $b['ruangan_id']) $conflictsFast++;
+            if (!empty($a['dosen_id']) && $a['dosen_id'] == $b['dosen_id']) $conflictsFast++;
           }
         }
       }
     }
 
-    // Nilai fitness hanyalah jumlah konflik.
-    // ABC biasanya memaksimalkan fitness. Fitness = 1 / (1 + conflicts).
-    // Tapi variabel kita adalah 'best_fitness_value' (double), dan user bilang "fitness paling kecil".
-    // Jadi kita perlakukan Jumlah Konflik SEBAGAI nilai yang diminimalkan.
-    return $conflicts;
+    // Konstrain B6 & Evaluasi D: 1 Konflik dibobot 1 Juta (Sangat buruk).
+    return ($conflictsFast * 1000000) + $timePenalty;
   }
 
   protected function calculateProbabilities($population)
   {
-    // Berdasarkan konflik (minimasi).
-    // Konversi ke fitness (maksimasi) untuk roulette wheel
-    // f = 1 / (1 + conflicts)
-
     $fitnesses = [];
-    $totalFitness = 0;
-
+    $total = 0;
     foreach ($population as $ind) {
-      $conflicts = $this->calculateFitness($ind);
-      $fit = 1 / (1 + $conflicts);
-      $fitnesses[] = $fit;
-      $totalFitness += $fit;
+      $fitValue = $this->calculateFitness($ind['data']);
+      // Inverse fitness karena algoritma mencari angka mengecil (0 Konflik)
+      $invFit = 1 / (1 + $fitValue);
+      $fitnesses[] = $invFit;
+      $total += $invFit;
     }
 
-    // Normalize
     $probs = [];
     foreach ($fitnesses as $fit) {
-      $probs[] = $fit / $totalFitness;
+      $probs[] = $fit / $total;
     }
-
     return $probs;
   }
 
   protected function selectByProbability($probs)
   {
-    $r = rand(0, 1000) / 1000;
-    $cumulative = 0;
-    foreach ($probs as $index => $prob) {
-      $cumulative += $prob;
-      if ($r <= $cumulative) {
-        return $index;
-      }
+    $r = mt_rand(0, 1000) / 1000;
+    $cum = 0;
+    foreach ($probs as $i => $p) {
+      $cum += $p;
+      if ($r <= $cum) return $i;
     }
     return count($probs) - 1;
   }
@@ -538,15 +411,16 @@ class ABCAlgorithm
   protected function getBestSolution($population)
   {
     $best = $population[0];
-    $minConflicts = $this->calculateFitness($best);
+    $minFit = $this->calculateFitness($best['data']);
 
     foreach ($population as $ind) {
-      $conflicts = $this->calculateFitness($ind);
-      if ($conflicts < $minConflicts) {
-        $minConflicts = $conflicts;
+      $fit = $this->calculateFitness($ind['data']);
+      if ($fit < $minFit) {
+        $minFit = $fit;
         $best = $ind;
       }
     }
+
     return $best;
   }
 }

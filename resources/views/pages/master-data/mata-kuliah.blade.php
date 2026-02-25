@@ -210,9 +210,9 @@
                     </span>
 
                     <ul class="hidden items-center gap-0.5 sm:flex">
-                        <template x-for="page in displayedPages" :key="page">
+                        <template x-for="(page, index) in displayedPages" :key="index">
                             <li>
-                                <button x-show="page !== '...'" @click="goToPage(page)" :class="currentPage === page ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-blue-500/[0.08] hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-500'" class="flex h-10 w-10 items-center justify-center rounded-lg text-theme-sm font-medium" x-text="page"></button>
+                                <button x-show="page !== '...'" @click="goToPage(page)" :class="currentPage === page ? 'bg-brand-500 text-white' : 'text-gray-700 hover:bg-brand-500/10 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-500'" class="flex h-10 w-10 items-center justify-center rounded-lg text-theme-sm font-medium" x-text="page"></button>
                                 <span x-show="page === '...'" class="flex h-10 w-10 items-center justify-center text-gray-500">...</span>
                             </li>
                         </template>
@@ -634,6 +634,9 @@
                              throw new Error(errorData.message || 'Network response was not ok');
                         }
 
+                        // Simpan pesan success sebelum form di-reset oleh closeModal()
+                        const successTitle = this.isEditing ? 'Data mata kuliah berhasil diperbarui' : 'Data mata kuliah berhasil ditambahkan';
+
                         await this.fetchMataKuliah();
                         await this.fetchLogs();
                         this.closeModal();
@@ -647,7 +650,7 @@
                         });
                         Toast.fire({
                             icon: 'success',
-                            title: this.isEditing ? 'Data mata kuliah berhasil diperbarui' : 'Data mata kuliah berhasil ditambahkan'
+                            title: successTitle
                         });
 
                         if (!this.isEditing) {

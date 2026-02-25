@@ -88,20 +88,9 @@
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                         @php
                                             $jamMulai = \Carbon\Carbon::parse($jadwal->jam->jam_mulai);
-                                            // Hitung durasi berdasarkan SKS
-                                            // 4 SKS = 3 Jam
-                                            // 2 SKS = 2 Jam
-                                            // Lainnya = 1 Jam (Default Slot)
-                                            $addHours = 1;
-                                            if ($jadwal->mataKuliah->sks == 4) {
-                                                $addHours = 3;
-                                            } elseif ($jadwal->mataKuliah->sks == 2) {
-                                                $addHours = 2;
-                                            }
-                                            
-                                            $jamSelesai = $jamMulai->copy()->addHours($addHours);
+                                            $jamSelesaiStr = $endTimes[$jadwal->id] ?? $jamMulai->copy()->addHours($durations[$jadwal->id] ?? 1)->format('H:i');
                                         @endphp
-                                        {{ $jamMulai->format('H:i') . ' - ' . $jamSelesai->format('H:i') }}
+                                        {{ $jamMulai->format('H:i') . ' - ' . $jamSelesaiStr }}
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $jadwal->mataKuliah->semester ?? '-' }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white">

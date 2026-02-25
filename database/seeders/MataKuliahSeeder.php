@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\MataKuliah;
 use Illuminate\Database\Seeder;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class MataKuliahSeeder extends Seeder
 {
@@ -119,14 +118,14 @@ class MataKuliahSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Interaksi Manusia dan Komputer',
+                'nama_matkul' => 'Sistem Operasi',
                 'sks' => '2',
                 'semester' => '2',
                 'status' => 'Active',
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Sistem Aplikasi Berbasis Obyek',
+                'nama_matkul' => 'Konsep Dasar Jaringan',
                 'sks' => '2',
                 'semester' => '2',
                 'status' => 'Active',
@@ -140,42 +139,42 @@ class MataKuliahSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Workshop Sistem Informasi Berbasis Desktop A',
+                'nama_matkul' => 'Workshop Rekayasa Perangkat Lunak A',
                 'sks' => '4',
                 'semester' => '2',
                 'status' => 'Active',
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Workshop Sistem Informasi Berbasis Desktop B',
+                'nama_matkul' => 'Workshop Rekayasa Perangkat Lunak B',
                 'sks' => '4',
                 'semester' => '2',
                 'status' => 'Active',
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Workshop Sistem Informasi Berbasis Desktop C',
+                'nama_matkul' => 'Workshop Rekayasa Perangkat Lunak C',
                 'sks' => '4',
                 'semester' => '2',
                 'status' => 'Active',
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Workshop Manajemen Proyek A',
+                'nama_matkul' => 'Workshop Sistem Informasi Berbasis Web A',
                 'sks' => '4',
                 'semester' => '2',
                 'status' => 'Active',
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Workshop Manajemen Proyek B',
+                'nama_matkul' => 'Workshop Sistem Informasi Berbasis Web B',
                 'sks' => '4',
                 'semester' => '2',
                 'status' => 'Active',
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Workshop Manajemen Proyek C',
+                'nama_matkul' => 'Workshop Sistem Informasi Berbasis Web C',
                 'sks' => '4',
                 'semester' => '2',
                 'status' => 'Active',
@@ -273,7 +272,7 @@ class MataKuliahSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Perawatan Perangkat Lunak',
+                'nama_matkul' => 'Perawatan dan Pengujian Perangkat Lunak',
                 'sks' => '2',
                 'semester' => '4',
                 'status' => 'Active',
@@ -283,7 +282,7 @@ class MataKuliahSeeder extends Seeder
                 'nama_matkul' => 'Pengujian Perangkat Lunak',
                 'sks' => '2',
                 'semester' => '4',
-                'status' => 'Active',
+                'status' => 'Inactive',
                 'created_at' => now(),
             ],
             [
@@ -332,7 +331,7 @@ class MataKuliahSeeder extends Seeder
                 'nama_matkul' => 'Agroinformatika',
                 'sks' => '2',
                 'semester' => '5',
-                'status' => 'Active',
+                'status' => 'Inactive',
                 'created_at' => now(),
             ],
             [
@@ -420,7 +419,7 @@ class MataKuliahSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Workshop Developer Operational A',
+                'nama_matkul' => 'Workshop Developer Operational',
                 'sks' => '4',   
                 'semester' => '6',
                 'status' => 'Active',
@@ -430,11 +429,11 @@ class MataKuliahSeeder extends Seeder
                 'nama_matkul' => 'Workshop Developer Operational B',
                 'sks' => '4',   
                 'semester' => '6',
-                'status' => 'Active',
+                'status' => 'Inactive',
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Workshop Tata Kelola Teknologi Informasi A',
+                'nama_matkul' => 'Workshop Tata Kelola Teknologi Informasi',
                 'sks' => '4',   
                 'semester' => '6',
                 'status' => 'Active',
@@ -444,11 +443,11 @@ class MataKuliahSeeder extends Seeder
                 'nama_matkul' => 'Workshop Tata Kelola Teknologi Informasi B',
                 'sks' => '4',   
                 'semester' => '6',
-                'status' => 'Active',
+                'status' => 'Inactive',
                 'created_at' => now(),
             ],
             [
-                'nama_matkul' => 'Workshop Proyek Sistem Informasi A',
+                'nama_matkul' => 'Workshop Proyek Sistem Informasi',
                 'sks' => '4',   
                 'semester' => '6',
                 'status' => 'Active',
@@ -458,7 +457,7 @@ class MataKuliahSeeder extends Seeder
                 'nama_matkul' => 'Workshop Proyek Sistem Informasi B',
                 'sks' => '4',   
                 'semester' => '6',
-                'status' => 'Active',
+                'status' => 'Inactive',
                 'created_at' => now(),
             ],
         ];

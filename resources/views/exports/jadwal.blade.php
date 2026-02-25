@@ -30,7 +30,7 @@
                 <tr>
                     {{-- Render Hari Column only for the first Jam of the day --}}
                     @if($index === 0)
-                        <td rowspan="{{ $jams->count() }}" style="border: 1px solid #000000; text-align: center; vertical-align: middle; font-weight: bold;">
+                        <td rowspan="{{ $jams->count() + 1 }}" style="border: 1px solid #000000; text-align: center; vertical-align: middle; font-weight: bold;">
                             {{ $hari->nama_hari }}
                         </td>
                     @endif
@@ -57,7 +57,10 @@
                         @if($cellData === 'SKIP')
                             {{-- Do nothing, covered by rowspan --}}
                         @elseif(is_object($cellData))
-                            <td rowspan="{{ $cellData->mataKuliah->sks == 4 ? 3 : 2 }}" style="background-color: {{ $bgColor }}; border: 1px solid #000000; text-align: center; vertical-align: middle;">
+                            @php
+                                $rowSpan = $durations[$cellData->id] ?? 2;
+                            @endphp
+                            <td rowspan="{{ $rowSpan }}" style="background-color: {{ $bgColor }}; border: 1px solid #000000; text-align: center; vertical-align: middle;">
                                 <b>{{ $cellData->mataKuliah->nama_matkul }}</b>
                                 <br>
                                 <i>{{ $cellData->dosen->nama_dosen }}</i>
@@ -67,8 +70,19 @@
                         @endif
                     @endforeach
                 </tr>
+                {{-- Inject Break Row automatically after the 12:00 ending slot --}}
+                @if(\Carbon\Carbon::parse($jam->jam_selesai)->format('H:i') == '12:00')
+                    <tr>
+                        <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; background-color: #d3d3d3; font-weight: bold;">
+                            12.00 - 13.00
+                        </td>
+                        <td colspan="{{ $ruangans->count() }}" style="border: 1px solid #000000; text-align: center; vertical-align: middle; background-color: #d3d3d3; font-weight: bold;">
+                            ISTIRAHAT
+                        </td>
+                    </tr>
+                @endif
             @endforeach
-            <!-- Separator Row Between Days (Optional, mimiks border style) -->
+            <!-- Separator Row Between Days -->
             <tr>
                 <td colspan="{{ 2 + $ruangans->count() }}" style="border-top: 2px solid #000000;"></td>
             </tr>
@@ -76,11 +90,8 @@
     </tbody>
     <tfoot>
         <tr></tr>
-        <tr>
-            <td colspan="2">Legend:</td>
-            <td style="background-color: #FCE883; border: 1px solid #000000; text-align: center;">Semester 1-2</td>
-            <td style="background-color: #90EE90; border: 1px solid #000000; text-align: center;">Semester 3-4</td>
-            <td style="background-color: #ADD8E6; border: 1px solid #000000; text-align: center;">Semester 5-6</td>
-        </tr>
+        <tr><td colspan="{{ 2 + $ruangans->count() }}" style="background-color: #FCE883; border: 1px solid #000000;">Semester 1-2 : Kuning</td></tr>
+        <tr><td colspan="{{ 2 + $ruangans->count() }}" style="background-color: #90EE90; border: 1px solid #000000;">Semester 3-4 : Hijau</td></tr>
+        <tr><td colspan="{{ 2 + $ruangans->count() }}" style="background-color: #ADD8E6; border: 1px solid #000000;">Semester 5-6 : Biru</td></tr>
     </tfoot>
 </table>

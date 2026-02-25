@@ -60,7 +60,7 @@ class InputDataController extends Controller
 
   public function getDosenData()
   {
-    $dosen = Dosen::orderBy('nama_dosen', 'asc')->get();
+    $dosen = Dosen::orderBy('id', 'asc')->get();
     return response()->json($dosen);
   }
 
@@ -236,7 +236,7 @@ class InputDataController extends Controller
 
   public function getMataKuliahData()
   {
-    $mataKuliah = MataKuliah::with('dosen')->orderBy('id', 'desc')->get();
+    $mataKuliah = MataKuliah::with('dosen')->orderBy('id', 'asc')->get();
 
     // Map data to match frontend expectation
     $formattedData = $mataKuliah->map(function ($mk) {
