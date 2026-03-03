@@ -18,4 +18,9 @@ class Jam extends Model
     ];
 
     public $timestamps = false;
+
+    public function jadwalKuliahs()
+    {
+        return $this->hasMany(JadwalKuliah::class, 'jam_id');
+    }
 }

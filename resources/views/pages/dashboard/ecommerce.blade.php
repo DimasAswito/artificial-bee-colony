@@ -20,21 +20,25 @@
     <div class="col-span-12 grid grid-cols-12 gap-4 md:gap-6">
         <!-- Bar Chart: Jumlah Kuliah per Hari -->
         <div class="col-span-12 xl:col-span-8">
-            <div class="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6 h-full">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
+            <div class="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6 h-full flex flex-col w-full overflow-hidden">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4 shrink-0">
                     Statistik Jadwal per Hari
                 </h3>
-                <div id="chartHari" class="-ml-4 min-w-[300px] pl-2 xl:min-w-full"></div>
+                <div class="relative w-full overflow-x-auto flex-1 min-h-[300px]">
+                    <div id="chartHari" class="absolute inset-0 w-full h-full min-w-[500px]"></div>
+                </div>
             </div>
         </div>
 
         <!-- Donut Chart: Semester Ratio -->
         <div class="col-span-12 xl:col-span-4">
-            <div class="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6 h-full">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
-                    Rasio Mata Kuliah (Aktif)
+            <div class="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6 h-full flex flex-col w-full overflow-hidden">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4 shrink-0 text-center">
+                    Rasio Mata Kuliah
                 </h3>
-                <div id="chartSemester" class="flex justify-center"></div>
+                <div class="relative w-full flex-1 min-h-[300px] flex items-center justify-center">
+                    <div id="chartSemester" class="w-full h-full"></div>
+                </div>
             </div>
         </div>
     </div>

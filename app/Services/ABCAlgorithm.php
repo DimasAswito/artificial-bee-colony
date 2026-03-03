@@ -51,7 +51,14 @@ class ABCAlgorithm
     // Simpan Dosen Bebas (Dosen Aktif yang TIDAK ada di assignedDosenIds)
     $this->data['free_dosens'] = $this->data['dosen']->whereNotIn('id', $assignedDosenIds)->values();
 
+    // Poin 2: Pisah pool ruangan Teori dan Praktek
     $this->data['ruangan'] = Ruangan::where('status', 'Active')->get();
+    $this->data['teori_ruangans'] = $this->data['ruangan']->filter(function ($r) {
+      return in_array(strtolower($r->nama_ruangan), ['ruang 101', 'aula']);
+    })->values();
+    // Jika tidak ada Ruang 101/Aula sama sekali, fallback ke semua ruangan
+    if ($this->data['teori_ruangans']->isEmpty()) $this->data['teori_ruangans'] = $this->data['ruangan'];
+
     $this->data['hari'] = Hari::where('status', 'Active')->get();
     $this->data['jam'] = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->values();
   }
@@ -158,8 +165,43 @@ class ABCAlgorithm
     $schedule = [];
 
     foreach ($this->data['mata_kuliah'] as $mk) {
-      $occurrences = ($mk->sks == 4) ? 2 : 1;
-      $durationSlots = ($mk->sks == 4) ? $this->durasi4Sks : 2;
+      // Poin 4 & 5: Hitung durasi murni dalam SLOT (1 Jam = 2 Slot)
+      // Teori: statis 1 SKS = 2 Slot (1 Jam)
+      $durasiTeoriSlots = $mk->sks_teori * 2;
+
+      // Praktek: Punya override max jam dari frontend, atau default 1 SKS = 4 Slot (2 Jam)
+      $durasiPraktekSlots = 0;
+      $occurrencesPraktek = 1;
+
+      if ($mk->sks_praktek > 0) {
+        $defaultPraktekJam = $mk->sks_praktek * 2; // Default praktek jam
+        // Jika ada inputan $this->durasi4Sks (yg harusnya merepresentasikan max jam praktek) dipakai jika valid
+        $maxJamPraktek = (float) $this->durasi4Sks;
+
+        // Poin 5: Kebal Override. Jika tipe Campuran (Teori > 0 AND Praktek > 0), hiraukan override, ikuti paten default
+        if ($mk->sks_teori > 0 && $mk->sks_praktek > 0) {
+          $totalJamPraktek = $defaultPraktekJam;
+          $occurrencesPraktek = 1;
+        } else {
+          // Murni Praktek: Terapkan Override Max Jam (Poin 4)
+          // Misal SKS=4 (Default 8 Jam), Max diset = 2.5 Jam
+          // Occurreces = 2. Total jam = Max * occurrences = 5 Jam
+          if ($maxJamPraktek > 0) {
+            // Asumsikan total pertemuan di-lock jadi 2 kali bagi yg besar, atau tetap 1 jika kecil 
+            // Logic sederhana: Jika ada parameter override, paksa dia menjadi sekian kali pertemuan
+            $occurrencesPraktek = 2; // (Sesuai contoh user: dibagi 2 pertemuan)
+            $totalJamPraktek = $maxJamPraktek * $occurrencesPraktek;
+          } else {
+            $totalJamPraktek = $defaultPraktekJam;
+            // Jika > 4 jam, defaultnya dicacah 2
+            $occurrencesPraktek = ($totalJamPraktek > 4) ? 2 : 1;
+          }
+        }
+
+        $durasiPraktekSlots = ($totalJamPraktek / $occurrencesPraktek) * 2; // Convert jam -> slot per pertemuan
+      }
+
+      $totalDurationSlots = $durasiTeoriSlots + $durasiPraktekSlots; // Jika campuran, total digabung
 
       // Konstrain B2: Mata kuliah HANYA diajar dosen pengampunya
       $dosenId = $mk->dosen_id;
@@ -175,9 +217,10 @@ class ABCAlgorithm
       }
 
       $usedHariIds = [];
+      $occurrences = max(1, $occurrencesPraktek);
 
       for ($i = 0; $i < $occurrences; $i++) {
-        $assignment = $this->getRandomAssignment($mk->id, $dosenId, $durationSlots, $usedHariIds);
+        $assignment = $this->getRandomAssignment($mk, $dosenId, $totalDurationSlots, $usedHariIds);
         if ($assignment) {
           $schedule[] = $assignment;
           // Konstrain B3: 4 SKS (2 sesi) tidak boleh di hari yang sama
@@ -189,7 +232,7 @@ class ABCAlgorithm
     return $schedule;
   }
 
-  protected function getRandomAssignment($mkId, $dosenId, $durationSlots, $excludedHariIds = [])
+  protected function getRandomAssignment($mk, $dosenId, $durationSlots, $excludedHariIds = [])
   {
     $availableDays = $this->data['hari']->whereNotIn('id', $excludedHariIds);
 
@@ -216,10 +259,18 @@ class ABCAlgorithm
         $biasedIndex = min(count($validJamIndices) - 1, max(0, $biasedIndex));
         $startIdx = $validJamIndices[$biasedIndex];
 
-        $ruangan = $this->data['ruangan']->random();
+        // Poin 2 & Poin 5: Pemilihan Ruangan Berdasarkan SKS
+        $ruangan = null;
+        if ($mk->sks_teori > 0) {
+          // Murni Teori OR Campuran (Teori + Praktek): Pakai Ruang 101 / Aula
+          $ruangan = $this->data['teori_ruangans']->random();
+        } else {
+          // Murni Praktek: Bebas seluruh ruangan
+          $ruangan = $this->data['ruangan']->random();
+        }
 
         return [
-          'mata_kuliah_id' => $mkId,
+          'mata_kuliah_id' => $mk->id,
           'dosen_id'       => $dosenId,
           'ruangan_id'     => $ruangan->id,
           'hari_id'        => $hari->id,
@@ -289,8 +340,14 @@ class ABCAlgorithm
     $item = $scheduleData[$mutateIdx];
 
     // 50% ganti Ruangan, 50% ganti Waktu
+    $mkMutate = $this->data['mata_kuliah']->firstWhere('id', $item['mata_kuliah_id']);
+
     if (mt_rand(0, 1) == 0) {
-      $item['ruangan_id'] = $this->data['ruangan']->random()->id;
+      if ($mkMutate && $mkMutate->sks_teori > 0) {
+        $item['ruangan_id'] = $this->data['teori_ruangans']->random()->id;
+      } else {
+        $item['ruangan_id'] = $this->data['ruangan']->random()->id;
+      }
     } else {
       // Untuk merubah waktu, kita harus mengecek sibling session hari (jika 4 SKS)
       $excludedHariIds = [];
@@ -300,7 +357,7 @@ class ABCAlgorithm
         }
       }
 
-      $newAssignment = $this->getRandomAssignment($item['mata_kuliah_id'], $item['dosen_id'], $item['duration_slots'], $excludedHariIds);
+      $newAssignment = $this->getRandomAssignment($mkMutate, $item['dosen_id'], $item['duration_slots'], $excludedHariIds);
       if ($newAssignment) {
         $item['hari_id']   = $newAssignment['hari_id'];
         $item['jam_id']    = $newAssignment['jam_id'];

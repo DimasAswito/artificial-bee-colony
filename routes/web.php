@@ -18,6 +18,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/riwayat-penjadwalan', [ABCController::class, 'riwayat'])->name('riwayat.index');
     Route::get('/riwayat-penjadwalan/{id}', [ABCController::class, 'detail'])->name('riwayat.detail');
     Route::get('/riwayat-penjadwalan/{id}/export', [ABCController::class, 'export'])->name('riwayat.export');
+    Route::delete('/riwayat-penjadwalan/{id}', [ABCController::class, 'destroy'])->name('riwayat.destroy');
 
     // Log Routes
     Route::get('/log', [LogController::class, 'index'])->name('log.index');

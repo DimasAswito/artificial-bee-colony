@@ -125,38 +125,36 @@
                             </div>
                         </div>
 
-                        <!-- Right: Algorithm Params -->
-                        <div class="space-y-4">
-                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase">Parameter Algoritma</h4>
-                             <div>
+                        <!-- Right: Algorithm Params (Simplified & Hidden in Modal) -->
+                        <div class="space-y-4 flex flex-col justify-center items-center h-full border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-6 bg-gray-50/50 dark:bg-gray-800/20">
+                            
+                            <div class="text-center w-full">
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Jumlah Populasi (Lebah) <span class="text-red-500">*</span>
-                                </label>
-                                <input type="number" x-model="form.population" min="10" max="200" required
-                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
-                                <p class="mt-1 text-xs text-gray-500">Semakin banyak, semakin akurat tapi lambat. Rekomendasi: 30-100.</p>
-                            </div>
-                             <div>
-                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Maksimal Iterasi (Siklus) <span class="text-red-500">*</span>
-                                </label>
-                                <input type="number" x-model="form.max_cycles" min="100" max="10000" required
-                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
-                                <p class="mt-1 text-xs text-gray-500">Batas pengulangan pencarian solusi. Rekomendasi: 1000.</p>
-                            </div>
-                            <div>
-                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Durasi Mata Kuliah 4 SKS <span class="text-red-500">*</span>
+                                    Durasi Max Pertemuan Praktek <span class="text-error-500">*</span>
                                 </label>
                                 <select x-model="form.durasi_4_sks" required
-                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                    class="w-full max-w-sm mx-auto rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                    <option value="0.5">0.5 Jam</option>
+                                    <option value="1">1 Jam</option>
+                                    <option value="1.5">1.5 Jam</option>
+                                    <option value="2">2 Jam</option>
+                                    <option value="2.5">2.5 Jam</option>
                                     <option value="3">3 Jam</option>
-                                    <option value="4">4 Jam</option>
+                                    <option value="3.5">3.5 Jam</option>
+                                    <option value="4" selected>4 Jam</option>
                                 </select>
-                                <p class="mt-1 text-xs text-gray-500">Pilih durasi pertemuan untuk MK 4 SKS per sesi.</p>
+                                <p class="mt-2 text-xs text-gray-500 max-w-sm mx-auto">Angka ini akan memecah jumlah sesi MK Praktek jika total jamnya melebihi batas ini.</p>
+                            </div>
+
+                            <div class="w-full max-w-sm mx-auto mt-6">
+                                <button type="button" @click="isModalOpen = true" class="w-full flex justify-center items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings-2">
+                                        <path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="8" cy="7" r="3"/>
+                                    </svg>
+                                    Pengaturan Algoritma ABC
+                                </button>
                             </div>
                         </div>
-                    </div>
 
                     <div class="mt-8 p-4 bg-yellow-50 text-yellow-800 border-l-4 border-yellow-400 rounded-r dark:bg-yellow-900/20 dark:text-yellow-200 dark:border-yellow-600">
                         <div class="flex">
@@ -187,6 +185,70 @@
                             </span>
                         </button>
                     </div>
+                </form>
+                    <!-- Alpine Modal for Advanced Settings -->
+                    <div x-show="isModalOpen" style="display: none" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                        <!-- Backdrop -->
+                        <div x-show="isModalOpen" 
+                             x-transition:enter="ease-out duration-300" 
+                             x-transition:enter-start="opacity-0" 
+                             x-transition:enter-end="opacity-100" 
+                             x-transition:leave="ease-in duration-200" 
+                             x-transition:leave-start="opacity-100" 
+                             x-transition:leave-end="opacity-0" 
+                             class="fixed inset-0 bg-gray-500/75 transition-opacity dark:bg-gray-900/80"></div>
+
+                        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                                <div x-show="isModalOpen" 
+                                     @click.away="isModalOpen = false"
+                                     x-transition:enter="ease-out duration-300" 
+                                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" 
+                                     x-transition:leave="ease-in duration-200" 
+                                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
+                                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                                     class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all dark:bg-gray-800 sm:my-8 sm:w-full sm:max-w-lg border border-gray-200 dark:border-gray-700">
+                                    <div class="bg-white px-4 pb-4 pt-5 dark:bg-gray-800 sm:p-6 sm:pb-4">
+                                        <div class="sm:flex sm:items-start">
+                                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                                                <svg class="h-6 w-6 text-brand-600 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                  <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm0 0H5.25M12.00 12h8.25M12.00 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm0 0H5.25M10.5 18h9.75M10.5 18a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm0 0H5.25" />
+                                                </svg>
+                                            </div>
+                                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                                <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white" id="modal-title">Pengaturan Lanjutan Algoritma ABC</h3>
+                                                <div class="mt-4 space-y-4">
+                                                    <div>
+                                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                                            Jumlah Populasi (Lebah)
+                                                        </label>
+                                                        <input type="number" x-model="form.population" min="10" max="200" required
+                                                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                                                        <p class="mt-1 text-xs text-gray-500">Semakin banyak, semakin bervariasi pencariannya namun lebih lambat. Default: 50</p>
+                                                    </div>
+                                                    <div>
+                                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                                            Maksimal Iterasi (Siklus)
+                                                        </label>
+                                                        <input type="number" x-model="form.max_cycles" min="100" max="10000" required
+                                                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                                                        <p class="mt-1 text-xs text-gray-500">Batas pengulangan pencarian jika solusi 0 konflik belum ditemukan. Default: 1000.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-gray-50 px-4 py-3 dark:bg-gray-800/50 sm:flex sm:flex-row-reverse sm:px-6 border-t border-gray-200 dark:border-gray-700">
+                                        <button type="button" @click="isModalOpen = false" class="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto">
+                                            Tutup
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </form>
             </div>
         </div>
@@ -281,9 +343,10 @@
                     semester: 'Ganjil',
                     population: 50,
                     max_cycles: 1000,
-                    durasi_4_sks: 3 // Default 3 Jam
+                    durasi_4_sks: 4 // Default 4 Jam
                 },
                 isGenerating: false,
+                isModalOpen: false,
                 
                 // Table State
                 search: '',
@@ -420,7 +483,11 @@
                             const data = await response.json();
 
                             if (!response.ok) {
-                                throw new Error(data.message || 'Terjadi kesalahan saat generate');
+                                let errorMsg = data.message || 'Terjadi kesalahan saat generate';
+                                if (data.details) {
+                                    errorMsg += '\n\n' + data.details;
+                                }
+                                throw new Error(errorMsg);
                             }
 
                             Swal.fire({

@@ -38,4 +38,12 @@ class MataKuliah extends Model
     {
         return $this->belongsTo(Dosen::class, 'dosen_id');
     }
+
+    /**
+     * Mendefinisikan relasi ke model JadwalKuliah.
+     */
+    public function jadwalKuliahs()
+    {
+        return $this->hasMany(JadwalKuliah::class, 'mata_kuliah_id');
+    }
 }

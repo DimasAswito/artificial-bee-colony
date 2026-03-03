@@ -6,7 +6,7 @@
     <div class="space-y-6" x-data="jamPageData()">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Card 1: Input Data Jam -->
-            <div class="lg:col-span-2">
+            {{-- <div class="lg:col-span-2">
                 <x-common.component-card title="Input Data Jam">
                     <form @submit.prevent="saveJam">
                         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -57,7 +57,7 @@
                         </div>
                     </form>
                 </x-common.component-card>
-            </div>
+            </div> --}}
 
             <!-- Card Metric: Total Slot Jam -->
             <div class="lg:col-span-1">
@@ -145,11 +145,11 @@
                                                     <path d="M15.2322 5.23223L18.7677 8.76777M16.7322 3.73223C17.7085 2.75592 19.2915 2.75592 20.2678 3.73223C21.2441 4.70854 21.2441 6.29146 20.2678 7.26777L6.5 21.0355H3V17.5355L16.7322 3.73223Z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
                                                 </button>
-                                                <button @click="confirmDelete(time.id)" class="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400">
+                                                {{-- <button @click="confirmDelete(time.id)" class="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400">
                                                     <svg class="stroke-current" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
-                                                </button>
+                                                </button> --}}
                                             </div>
                                         </td>
                                     </tr>
@@ -518,51 +518,51 @@
                     }
                 },
 
-                confirmDelete(id) {
-                    Swal.fire({
-                        title: 'Apakah anda yakin?',
-                        text: "Data yang dihapus tidak dapat dikembalikan!",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Ya, Hapus!',
-                        cancelButtonText: 'Batal'
-                    }).then(async (result) => {
-                        if (result.isConfirmed) {
-                            try {
-                                const response = await fetch(`/jam/${id}`, {
-                                    method: 'DELETE',
-                                    headers: {
-                                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                                    }
-                                });
+                // confirmDelete(id) {
+                //     Swal.fire({
+                //         title: 'Apakah anda yakin?',
+                //         text: "Data yang dihapus tidak dapat dikembalikan!",
+                //         icon: 'warning',
+                //         showCancelButton: true,
+                //         confirmButtonColor: '#d33',
+                //         cancelButtonColor: '#3085d6',
+                //         confirmButtonText: 'Ya, Hapus!',
+                //         cancelButtonText: 'Batal'
+                //     }).then(async (result) => {
+                //         if (result.isConfirmed) {
+                //             try {
+                //                 const response = await fetch(`/jam/${id}`, {
+                //                     method: 'DELETE',
+                //                     headers: {
+                //                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                //                     }
+                //                 });
 
-                                const result = await response.json();
+                //                 const result = await response.json();
 
-                                if (!response.ok) throw new Error(result.message);
+                //                 if (!response.ok) throw new Error(result.message);
 
-                                const Toast = Swal.mixin({
-                                    toast: true,
-                                    position: 'bottom-end',
-                                    showConfirmButton: false,
-                                    timer: 3000,
-                                    timerProgressBar: true
-                                });
+                //                 const Toast = Swal.mixin({
+                //                     toast: true,
+                //                     position: 'bottom-end',
+                //                     showConfirmButton: false,
+                //                     timer: 3000,
+                //                     timerProgressBar: true
+                //                 });
 
-                                Toast.fire({
-                                    icon: 'success',
-                                    title: result.message
-                                });
+                //                 Toast.fire({
+                //                     icon: 'success',
+                //                     title: result.message
+                //                 });
 
-                                this.fetchJam();
-                                this.fetchLogs();
-                            } catch (error) {
-                                Swal.fire('Error', error.message, 'error');
-                            }
-                        }
-                    })
-                }
+                //                 this.fetchJam();
+                //                 this.fetchLogs();
+                //             } catch (error) {
+                //                 Swal.fire('Error', error.message, 'error');
+                //             }
+                //         }
+                //     })
+                // }
             };
         }
     </script>

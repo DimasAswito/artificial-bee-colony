@@ -37,4 +37,12 @@ class Dosen extends Model
      * @var bool
      */
     public $timestamps = false;
+
+    /**
+     * Mendefinisikan relasi ke model JadwalKuliah.
+     */
+    public function jadwalKuliahs()
+    {
+        return $this->hasMany(JadwalKuliah::class, 'dosen_id');
+    }
 }

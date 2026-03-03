@@ -30,7 +30,7 @@
                 <tr>
                     {{-- Render Hari Column only for the first Jam of the day --}}
                     @if($index === 0)
-                        <td rowspan="{{ $jams->count() + 1 }}" style="border: 1px solid #000000; text-align: center; vertical-align: middle; font-weight: bold;">
+                        <td rowspan="{{ $hari->nama_hari === 'Jumat' ? $jams->count() : $jams->count() + 1 }}" style="border: 1px solid #000000; text-align: center; vertical-align: middle; font-weight: bold;">
                             {{ $hari->nama_hari }}
                         </td>
                     @endif
@@ -71,7 +71,7 @@
                     @endforeach
                 </tr>
                 {{-- Inject Break Row automatically after the 12:00 ending slot --}}
-                @if(\Carbon\Carbon::parse($jam->jam_selesai)->format('H:i') == '12:00')
+                @if(\Carbon\Carbon::parse($jam->jam_selesai)->format('H:i') == '12:00' && $hari->nama_hari !== 'Jumat')
                     <tr>
                         <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; background-color: #d3d3d3; font-weight: bold;">
                             12.00 - 13.00

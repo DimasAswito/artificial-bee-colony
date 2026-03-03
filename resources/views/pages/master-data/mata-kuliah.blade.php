@@ -694,10 +694,11 @@
                                         title: 'Data mata kuliah berhasil dihapus'
                                     });
                                 } else {
-                                    throw new Error('Failed to delete');
+                                    const errorData = await response.json();
+                                    throw new Error(errorData.message || 'Failed to delete');
                                 }
                             } catch (error) {
-                                 Swal.fire('Error', 'Gagal menghapus data', 'error');
+                                 Swal.fire('Error', error.message, 'error');
                             }
                         }
                     });

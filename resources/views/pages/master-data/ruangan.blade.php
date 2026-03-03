@@ -436,6 +436,9 @@
                              throw new Error('Failed to save data');
                         }
 
+                        // Capture success title before edit state is reset by closeModal
+                        const successTitle = this.isEditing ? 'Data ruangan berhasil diperbarui' : 'Data ruangan berhasil ditambahkan';
+
                         await this.fetchRuangan();
                         await this.fetchLogs();
                         this.closeModal();
@@ -449,7 +452,7 @@
                         });
                         Toast.fire({
                             icon: 'success',
-                            title: this.isEditing ? 'Data ruangan berhasil diperbarui' : 'Data ruangan berhasil ditambahkan'
+                            title: successTitle
                         });
 
                         if (!this.isEditing) {
@@ -499,11 +502,12 @@
                                         title: 'Data ruangan berhasil dihapus'
                                     });
                                 } else {
-                                    throw new Error('Failed to delete');
+                                    const errorData = await response.json();
+                                    throw new Error(errorData.message || 'Failed to delete');
                                 }
-                             } catch (error) {
-                                 Swal.fire('Error', 'Gagal menghapus data', 'error');
-                             }
+                            } catch (error) {
+                                Swal.fire('Error', error.message, 'error');
+                            }
                         }
                     });
                 }

@@ -153,32 +153,21 @@ class ABCController extends Controller
             }
         }
 
-        // 2. Calculate Duration
+        // 2. Calculate Real Duration (Reverse-engineered from ABCAlgorithm SKS logic)
         $durations = [];
+        $occurrencesMap = [];
+        // Pre-count occurrences per mata_kuliah_id
         foreach ($history->jadwalKuliahs as $jadwal) {
-            $durations[$jadwal->id] = 1; // Default
+            $occurrencesMap[$jadwal->mata_kuliah_id] = ($occurrencesMap[$jadwal->mata_kuliah_id] ?? 0) + 1;
+        }
 
-            if ($jadwal->mataKuliah->sks == 2) {
-                $durations[$jadwal->id] = 2;
-            } elseif ($jadwal->mataKuliah->sks == 4) {
-                $is4Hours = true;
-                $currentIndex = $jamIdToIndex[$jadwal->jam_id] ?? false;
+        foreach ($history->jadwalKuliahs as $jadwal) {
+            $mk = $jadwal->mataKuliah;
+            $totalIdealSlots = ($mk->sks_teori * 2) + ($mk->sks_praktek * 4);
+            $occurrences = $occurrencesMap[$mk->id] ?? 1;
 
-                if ($currentIndex !== false) {
-                    $fourthSlotIndex = $currentIndex + 3;
-                    // Jika di slot ke-4 ada kelas BUKAN SAYA, maka saya pasti cuma 3 Jam
-                    if (
-                        isset($usage[$jadwal->hari_id][$jadwal->ruangan_id][$fourthSlotIndex]) &&
-                        $usage[$jadwal->hari_id][$jadwal->ruangan_id][$fourthSlotIndex] != $jadwal->id
-                    ) {
-                        $is4Hours = false;
-                    }
-                } else {
-                    $is4Hours = false;
-                }
-
-                $durations[$jadwal->id] = $is4Hours ? 4 : 3;
-            }
+            $slotsPerSession = (int) floor($totalIdealSlots / $occurrences);
+            $durations[$jadwal->id] = max(1, $slotsPerSession); // Minimum 1 slot
         }
 
         // 3. Calculate End Times untuk View (mempertimbangkan gap jam istirahat)
@@ -242,30 +231,21 @@ class ABCController extends Controller
             }
         }
 
-        // 4. Hitung Durasi (Heuristik 4 SKS)
+        // 4. Hitung Durasi (Reverse-engineered from ABCAlgorithm SKS logic)
         $durations = [];
+        $occurrencesMap = [];
+        // Pre-count occurrences per mata_kuliah_id
         foreach ($history->jadwalKuliahs as $jadwal) {
-            $durations[$jadwal->id] = 1; // Default
-            if ($jadwal->mataKuliah->sks == 2) {
-                $durations[$jadwal->id] = 2;
-            } elseif ($jadwal->mataKuliah->sks == 4) {
-                $is4Hours = true;
-                $currentIndex = $jamIdToIndex[$jadwal->jam_id] ?? false;
+            $occurrencesMap[$jadwal->mata_kuliah_id] = ($occurrencesMap[$jadwal->mata_kuliah_id] ?? 0) + 1;
+        }
 
-                if ($currentIndex !== false) {
-                    $fourthSlotIndex = $currentIndex + 3;
-                    if (
-                        isset($usageMap[$jadwal->hari_id][$jadwal->ruangan_id][$fourthSlotIndex]) &&
-                        $usageMap[$jadwal->hari_id][$jadwal->ruangan_id][$fourthSlotIndex] != $jadwal->id
-                    ) {
-                        $is4Hours = false;
-                    }
-                } else {
-                    $is4Hours = false;
-                }
+        foreach ($history->jadwalKuliahs as $jadwal) {
+            $mk = $jadwal->mataKuliah;
+            $totalIdealSlots = ($mk->sks_teori * 2) + ($mk->sks_praktek * 4);
+            $occurrences = $occurrencesMap[$mk->id] ?? 1;
 
-                $durations[$jadwal->id] = $is4Hours ? 4 : 3;
-            }
+            $slotsPerSession = (int) floor($totalIdealSlots / $occurrences);
+            $durations[$jadwal->id] = max(1, $slotsPerSession); // Minimum 1 slot
         }
 
         // 5. Isi Grid (Final Pass)
@@ -350,28 +330,56 @@ class ABCController extends Controller
         $totalSlotsNeeded = 0;
 
         foreach ($mataKuliahs as $mk) {
-            // Logic Durasi (Sesuai Pilihan User)
-            // 4 SKS = $durasi4Sks (3 atau 4) x 2 Occurrences
-            // 2 SKS = 2 Jam (2 Slot) x 1 Occurrence
+            $durasiTeoriSlots = $mk->sks_teori * 2;
 
-            $occurrences = ($mk->sks == 4) ? 2 : 1;
-            $duration = ($mk->sks == 4) ? $durasi4Sks : ($mk->sks == 2 ? 2 : 1);
+            $durasiPraktekSlots = 0;
+            $occurrencesPraktek = 1;
 
-            // Asumsi 1 SKS = 1 Slot
-            if ($mk->sks == 3) $duration = 3;
+            if ($mk->sks_praktek > 0) {
+                $defaultPraktekJam = $mk->sks_praktek * 2; // Default praktek jam
+                $maxJamPraktek = (float) $durasi4Sks;
 
-            $slotsForThis = $occurrences * $duration;
-            $totalSlotsNeeded += $slotsForThis;
+                if ($mk->sks_teori > 0 && $mk->sks_praktek > 0) {
+                    $totalJamPraktek = $defaultPraktekJam;
+                    $occurrencesPraktek = 1;
+                } else {
+                    if ($maxJamPraktek > 0) {
+                        $occurrencesPraktek = 2;
+                        $totalJamPraktek = $maxJamPraktek * $occurrencesPraktek;
+                    } else {
+                        $totalJamPraktek = $defaultPraktekJam;
+                        $occurrencesPraktek = ($totalJamPraktek > 4) ? 2 : 1;
+                    }
+                }
+
+                $durasiPraktekSlots = ($totalJamPraktek / $occurrencesPraktek) * 2; // Jam -> Slot
+            }
+
+            $totalDurationSlots = $durasiTeoriSlots + $durasiPraktekSlots;
+
+            // Total sum of slots taken inside the schedule grid
+            $totalSlotsNeeded += ($occurrencesPraktek * $totalDurationSlots);
         }
 
         if ($totalSlotsNeeded > $totalCapacitySlots) {
             return [
                 'success' => false,
                 'message' => "Kapasitas ruangan tidak mencukupi!",
-                'details' => "Dibutuhkan {$totalSlotsNeeded} slot, tetapi hanya tersedia {$totalCapacitySlots} slot. Defisit: " . ($totalSlotsNeeded - $totalCapacitySlots) . " slot."
+                'details' => "Dibutuhkan {$totalSlotsNeeded} slot, tetapi hanya tersedia {$totalCapacitySlots} slot. Kurang: " . ($totalSlotsNeeded - $totalCapacitySlots) . " slot."
             ];
         }
 
         return ['success' => true];
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $riwayat = RiwayatPenjadwalan::findOrFail($id);
+            $riwayat->delete();
+            return response()->json(['message' => 'Riwayat berhasil dihapus']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal menghapus riwayat', 'error' => $e->getMessage()], 500);
+        }
     }
 }

@@ -17,4 +17,9 @@ class Ruangan extends Model
     ];
 
     public $timestamps = false;
+
+    public function jadwalKuliahs()
+    {
+        return $this->hasMany(JadwalKuliah::class, 'ruangan_id');
+    }
 }

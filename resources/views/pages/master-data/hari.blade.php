@@ -321,7 +321,7 @@
 
                         } catch (error) {
                             console.error('Error updating status:', error);
-                            Swal.fire('Error', 'Gagal mengubah status', 'error');
+                            Swal.fire('Error', error.message, 'error');
                         }
                     }
                 }

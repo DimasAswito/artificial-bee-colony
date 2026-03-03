@@ -102,6 +102,13 @@ class InputDataController extends Controller
   public function destroyDosen($id)
   {
     $dosen = Dosen::findOrFail($id);
+
+    if ($dosen->jadwalKuliahs()->exists()) {
+      return response()->json([
+        'message' => 'Dosen ini sedang digunakan dalam Riwayat Jadwal. Silahkan ubah status menjadi Inactive jika tidak digunakan, atau hapus riwayat jadwal yang bersangkutan.'
+      ], 400);
+    }
+
     $namaDosen = $dosen->nama_dosen;
     $dosen->delete();
     $this->logActivity('Data Dosen', 'Menghapus Data Dosen : ' . $namaDosen);
@@ -222,6 +229,13 @@ class InputDataController extends Controller
   public function destroyJam($id)
   {
     $jam = Jam::findOrFail($id);
+
+    if ($jam->jadwalKuliahs()->exists()) {
+      return response()->json([
+        'message' => 'Jam ini sedang digunakan dalam Riwayat Jadwal. Silahkan ubah status menjadi Inactive, atau hapus riwayat jadwal bersangkutan.'
+      ], 400);
+    }
+
     $jamDetail = $jam->jam_mulai . ' - ' . $jam->jam_selesai;
     $jam->delete();
     $this->logActivity('Data Jam', 'Menghapus Data Jam : ' . $jamDetail);
@@ -302,6 +316,14 @@ class InputDataController extends Controller
   public function destroyMataKuliah($id)
   {
     $mataKuliah = MataKuliah::findOrFail($id);
+
+    // Prevent hard-delete if Mata Kuliah is used in Riwayat Penjadwalan
+    if ($mataKuliah->jadwalKuliahs()->exists()) {
+      return response()->json([
+        'message' => 'Mata Kuliah ini sedang digunakan dalam Riwayat Jadwal. Silahkan ubah status menjadi Inactive jika tidak digunakan, atau hapus riwayat jadwal yang bersangkutan terlebih dahulu.'
+      ], 400);
+    }
+
     $namaMatkul = $mataKuliah->nama_matkul;
     $mataKuliah->delete();
     $this->logActivity('Data Mata Kuliah', 'Menghapus Data Mata Kuliah : ' . $namaMatkul);
@@ -360,6 +382,13 @@ class InputDataController extends Controller
   public function destroyRuangan($id)
   {
     $ruangan = Ruangan::findOrFail($id);
+
+    if ($ruangan->jadwalKuliahs()->exists()) {
+      return response()->json([
+        'message' => 'Ruangan ini sedang digunakan dalam Riwayat Jadwal. Silahkan ubah status menjadi Inactive, atau hapus riwayat jadwal bersangkutan.'
+      ], 400);
+    }
+
     $namaRuangan = $ruangan->nama_ruangan;
     $ruangan->delete();
     $this->logActivity('Data Ruangan', 'Menghapus Data Ruangan : ' . $namaRuangan);
