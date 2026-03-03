@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('nama_matkul');
             $table->string('semester');
-            $table->integer('sks');
+            $table->string('kode_mk');
+            $table->integer('sks_teori');
+            $table->integer('sks_praktek');
             // $table->foreignUuid('dosen_id')->nullable()->constrained('dosen')
             $table->foreignId('dosen_id')->nullable()->constrained('dosen');
             $table->string('status')->default('Active')->nullable();

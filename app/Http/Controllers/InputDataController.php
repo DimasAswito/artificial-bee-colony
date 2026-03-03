@@ -242,8 +242,10 @@ class InputDataController extends Controller
     $formattedData = $mataKuliah->map(function ($mk) {
       return [
         'id' => $mk->id,
+        'kode_mk' => $mk->kode_mk,
         'name' => $mk->nama_matkul,
-        'sks' => $mk->sks,
+        'sks_teori' => $mk->sks_teori,
+        'sks_praktek' => $mk->sks_praktek,
         'semester' => $mk->semester,
         'dosen' => $mk->dosen ? $mk->dosen->nama_dosen : '-',
         'dosen_id' => $mk->dosen_id, // Needed for edit form
@@ -258,8 +260,10 @@ class InputDataController extends Controller
   {
     $request->validate([
       'nama_matkul' => 'required|string|max:255',
-      'sks' => 'required|integer',
-      'semester' => 'required|string',
+      'kode_mk' => 'required|string|max:50',
+      'sks_teori' => 'required|integer|min:0',
+      'sks_praktek' => 'required|integer|min:0',
+      'semester' => 'required|numeric|min:1|max:8',
       'dosen_id' => 'nullable|exists:dosen,id',
       'status' => 'nullable|in:Active,Inactive'
     ]);
@@ -282,8 +286,10 @@ class InputDataController extends Controller
   {
     $request->validate([
       'nama_matkul' => 'required|string|max:255',
-      'sks' => 'required|integer',
-      'semester' => 'required|string',
+      'kode_mk' => 'required|string|max:50',
+      'sks_teori' => 'required|integer|min:0',
+      'sks_praktek' => 'required|integer|min:0',
+      'semester' => 'required|numeric|min:1|max:8',
       'dosen_id' => 'nullable|exists:dosen,id',
       'status' => 'nullable|in:Active,Inactive'
     ]);

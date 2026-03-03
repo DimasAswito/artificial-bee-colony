@@ -14,13 +14,22 @@ class MataKuliah extends Model
 
     protected $fillable = [
         'nama_matkul',
-        'sks',
+        'kode_mk',
+        'sks_teori',
+        'sks_praktek',
         'semester',
         'dosen_id',
         'status',
     ];
 
     public $timestamps = false;
+
+    protected $appends = ['sks'];
+
+    public function getSksAttribute()
+    {
+        return $this->sks_teori + $this->sks_praktek;
+    }
 
     /**
      * Mendefinisikan relasi ke model Dosen.
