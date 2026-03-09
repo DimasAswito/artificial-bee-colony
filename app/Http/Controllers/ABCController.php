@@ -40,7 +40,7 @@ class ABCController extends Controller
             'max_cycles' => 'required|integer|min:100|max:10000',
             'semester' => 'required|string',
             'tahun_ajaran' => 'required|string',
-            'durasi_4_sks' => 'required|integer|in:3,4', // Validasi input baru
+            'durasi_4_sks' => 'required|numeric|min:0.5', // Mengizinkan angka desimal
         ]);
 
         // Capacity Check Pre-Validation
@@ -62,6 +62,7 @@ class ABCController extends Controller
             'judul' => $request->judul,
             'semester' => $request->semester,
             'tahun_ajaran' => $request->tahun_ajaran,
+            'durasi_praktek' => $request->durasi_4_sks,
             'best_fitness_value' => $result['conflicts'], // Simpan MURNI jumlah konflik ke DB
             'jumlah_iterasi' => $request->max_cycles,
             'status' => 'Final', // Locked for now
@@ -99,25 +100,32 @@ class ABCController extends Controller
         }, 'jadwalKuliahs.mataKuliah', 'jadwalKuliahs.dosen', 'jadwalKuliahs.ruangan', 'jadwalKuliahs.hari', 'jadwalKuliahs.jam'])
             ->findOrFail($id);
 
+        // 1. Calculate Real Duration (Reverse-engineered from ABCAlgorithm SKS logic and saved history config)
+        $durations = $this->calculateDurations($history);
+
         // Deteksi Konflik untuk Highlight
         $items = $history->jadwalKuliahs;
         $conflictingIds = [];
 
         // Map Jam ID ke Index (Asumsi ID berurutan atau kita load semua jam)
-        $allJams = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->pluck('id')->values()->toArray();
+        $haris = Hari::orderBy('id')->where('status', 'Active')->get();
+        $jams = Jam::orderBy('jam_mulai')->where('status', 'Active')->get();
+        $ruangans = Ruangan::orderBy('nama_ruangan')->where('status', 'Active')->get();
+
+        $allJams = $jams->pluck('id')->values()->toArray();
 
         foreach ($items as $keyA => $a) {
             foreach ($items as $keyB => $b) {
                 if ($a->id == $b->id) continue;
 
                 if ($a->hari_id == $b->hari_id) {
-                    // Hitung Rentang Waktu A
-                    $aDurasi = ($a->mataKuliah->sks == 4) ? 3 : (($a->mataKuliah->sks == 2) ? 2 : 1);
+                    // Gunakan durasi riil yang dihitung dari history
+                    $aDurasi = $durations[$a->id] ?? 1;
                     $aIndex = array_search($a->jam_id, $allJams);
                     if ($aIndex === false) continue;
 
                     // Hitung Rentang Waktu B
-                    $bDurasi = ($b->mataKuliah->sks == 4) ? 3 : (($b->mataKuliah->sks == 2) ? 2 : 1);
+                    $bDurasi = $durations[$b->id] ?? 1;
                     $bIndex = array_search($b->jam_id, $allJams);
                     if ($bIndex === false) continue;
 
@@ -137,41 +145,7 @@ class ABCController extends Controller
         }
         $conflictingIds = array_unique($conflictingIds);
 
-        // Detect Durations (Heuristic for 4 SKS)
-        // 1. Map Usage (Penting: harus berurutan index jam_id)
-        $jamIndices = $allJams; // Array ID jam berurutan
-        $jamIdToIndex = array_flip($jamIndices);
-
-        $usage = [];
-        foreach ($history->jadwalKuliahs as $jadwal) {
-            $h = $jadwal->hari_id;
-            $r = $jadwal->ruangan_id;
-            $j = $jadwal->jam_id;
-            if (isset($jamIdToIndex[$j])) {
-                $idx = $jamIdToIndex[$j];
-                $usage[$h][$r][$idx] = $jadwal->id;
-            }
-        }
-
-        // 2. Calculate Real Duration (Reverse-engineered from ABCAlgorithm SKS logic)
-        $durations = [];
-        $occurrencesMap = [];
-        // Pre-count occurrences per mata_kuliah_id
-        foreach ($history->jadwalKuliahs as $jadwal) {
-            $occurrencesMap[$jadwal->mata_kuliah_id] = ($occurrencesMap[$jadwal->mata_kuliah_id] ?? 0) + 1;
-        }
-
-        foreach ($history->jadwalKuliahs as $jadwal) {
-            $mk = $jadwal->mataKuliah;
-            $totalIdealSlots = ($mk->sks_teori * 2) + ($mk->sks_praktek * 4);
-            $occurrences = $occurrencesMap[$mk->id] ?? 1;
-
-            $slotsPerSession = (int) floor($totalIdealSlots / $occurrences);
-            $durations[$jadwal->id] = max(1, $slotsPerSession); // Minimum 1 slot
-        }
-
         // 3. Calculate End Times untuk View (mempertimbangkan gap jam istirahat)
-        $jams = Jam::where('status', 'Active')->orderBy('jam_mulai')->get();
         $jamList = $jams->values(); // Reset index to 0, 1, 2...
         $endTimes = [];
 
@@ -187,8 +161,8 @@ class ABCController extends Controller
                 $endJam = $jamList[$startIdx + $durationSlots - 1]; // Jam terakhir dari slot ini
                 $endTimes[$jadwal->id] = \Carbon\Carbon::parse($endJam->jam_selesai)->format('H:i');
             } else {
-                // Fallback jika tidak ditemukan (seharusnya tidak terjadi)
-                $endTimes[$jadwal->id] = \Carbon\Carbon::parse($jadwal->jam->jam_mulai)->addHours($durationSlots)->format('H:i');
+                // Fallback jika tidak ditemukan
+                $endTimes[$jadwal->id] = \Carbon\Carbon::parse($jadwal->jam->jam_mulai)->addMinutes($durationSlots * 30)->format('H:i');
             }
         }
 
@@ -231,22 +205,8 @@ class ABCController extends Controller
             }
         }
 
-        // 4. Hitung Durasi (Reverse-engineered from ABCAlgorithm SKS logic)
-        $durations = [];
-        $occurrencesMap = [];
-        // Pre-count occurrences per mata_kuliah_id
-        foreach ($history->jadwalKuliahs as $jadwal) {
-            $occurrencesMap[$jadwal->mata_kuliah_id] = ($occurrencesMap[$jadwal->mata_kuliah_id] ?? 0) + 1;
-        }
-
-        foreach ($history->jadwalKuliahs as $jadwal) {
-            $mk = $jadwal->mataKuliah;
-            $totalIdealSlots = ($mk->sks_teori * 2) + ($mk->sks_praktek * 4);
-            $occurrences = $occurrencesMap[$mk->id] ?? 1;
-
-            $slotsPerSession = (int) floor($totalIdealSlots / $occurrences);
-            $durations[$jadwal->id] = max(1, $slotsPerSession); // Minimum 1 slot
-        }
+        // 4. Hitung Durasi Real
+        $durations = $this->calculateDurations($history);
 
         // 5. Isi Grid (Final Pass)
         foreach ($history->jadwalKuliahs as $jadwal) {
@@ -290,6 +250,42 @@ class ABCController extends Controller
         $rawFilename = sprintf('Jadwal %s semester %s %s.xlsx', $history->judul, $history->semester, $history->tahun_ajaran);
         $filename = str_replace(['/', '\\'], '-', $rawFilename);
         return Excel::download(new JadwalExport($data, $history->judul), $filename);
+    }
+
+    private function calculateDurations($history)
+    {
+        $durations = [];
+        $occurrencesMap = [];
+        foreach ($history->jadwalKuliahs as $jadwal) {
+            $occurrencesMap[$jadwal->mata_kuliah_id] = ($occurrencesMap[$jadwal->mata_kuliah_id] ?? 0) + 1;
+        }
+
+        foreach ($history->jadwalKuliahs as $jadwal) {
+            $mk = $jadwal->mataKuliah;
+            $durasiTeoriSlots = $mk->sks_teori * 2;
+            $durasiPraktekSlots = 0;
+
+            if ($mk->sks_praktek > 0) {
+                $defaultPraktekJam = $mk->sks_praktek * 2;
+                $maxJamPraktek = (float) $history->durasi_praktek;
+
+                if ($mk->sks_teori > 0 && $mk->sks_praktek > 0) {
+                    $totalJamPraktek = $defaultPraktekJam;
+                    $occur = 1;
+                } else {
+                    if ($maxJamPraktek > 0) {
+                        $occur = 2;
+                        $totalJamPraktek = $maxJamPraktek * $occur;
+                    } else {
+                        $totalJamPraktek = $defaultPraktekJam;
+                        $occur = ($totalJamPraktek > 4) ? 2 : 1;
+                    }
+                }
+                $durasiPraktekSlots = ($totalJamPraktek / $occur) * 2;
+            }
+            $durations[$jadwal->id] = max(1, $durasiTeoriSlots + $durasiPraktekSlots);
+        }
+        return $durations;
     }
 
     private function checkCapacity($semesterType, $durasi4Sks)

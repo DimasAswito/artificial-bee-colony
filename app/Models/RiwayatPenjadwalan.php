@@ -16,6 +16,7 @@ class RiwayatPenjadwalan extends Model
     'judul',
     'semester',
     'tahun_ajaran',
+    'durasi_praktek',
     'best_fitness_value',
     'jumlah_iterasi',
     'status',

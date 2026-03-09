@@ -185,7 +185,7 @@
                             </span>
                         </button>
                     </div>
-                </form>
+                    </form>
                     <!-- Alpine Modal for Advanced Settings -->
                     <div x-show="isModalOpen" style="display: none" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                         <!-- Backdrop -->
@@ -248,8 +248,7 @@
                             </div>
                         </div>
                     </div>
-
-                </form>
+                </div>
             </div>
         </div>
 
