@@ -37,8 +37,8 @@ class InputDataController extends Controller
       $query->where('type', $request->type);
     }
 
-    // Fetch latest 10 logs with user info
-    $logs = $query->take(10)->get();
+    // Fetch latest 5 logs with user info
+    $logs = $query->take(5)->get();
 
     // Map to format expected by frontend
     $formattedLogs = $logs->map(function ($log) {
