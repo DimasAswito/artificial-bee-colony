@@ -36,7 +36,7 @@ class ABCController extends Controller
 
         $request->validate([
             'judul' => 'required|string|max:255',
-            'population' => 'required|integer|min:10|max:200',
+            'population' => 'required|integer|min:10|max:700',
             'max_cycles' => 'required|integer|min:100|max:10000',
             'semester' => 'required|string',
             'tahun_ajaran' => 'required|string',

@@ -99,7 +99,7 @@
                 </h3>
             </div>
             <div class="p-5">
-                <form @submit.prevent="submitGenerate">
+                <form x-ref="formEl" @submit.prevent="submitGenerate" novalidate>
                     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <!-- Left: Schedule Info -->
                         <div class="space-y-4">
@@ -185,7 +185,7 @@
                             </span>
                         </button>
                     </div>
-                    </form>
+                    <!-- form stays open here to encompass modal -->
                     <!-- Alpine Modal for Advanced Settings -->
                     <div x-show="isModalOpen" style="display: none" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                         <!-- Backdrop -->
@@ -223,17 +223,21 @@
                                                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                                             Jumlah Populasi (Lebah)
                                                         </label>
-                                                        <input type="number" x-model="form.population" min="10" max="200" required
-                                                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
-                                                        <p class="mt-1 text-xs text-gray-500">Semakin banyak, semakin bervariasi pencariannya namun lebih lambat. Default: 50</p>
+                                                        <input type="number" x-model.number="form.population" x-ref="popInput" min="10" max="700" required
+                                                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" 
+                                                            placeholder="Maksimal 700"
+                                                            />
+                                                        <p class="mt-1 text-xs text-gray-500">Semakin banyak, semakin bervariasi pencariannya namun lebih lambat. Minimal: 10, Maksimal: 700.</p>
                                                     </div>
                                                     <div>
                                                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                                             Maksimal Iterasi (Siklus)
                                                         </label>
-                                                        <input type="number" x-model="form.max_cycles" min="100" max="10000" required
-                                                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
-                                                        <p class="mt-1 text-xs text-gray-500">Batas pengulangan pencarian jika solusi 0 konflik belum ditemukan. Default: 1000.</p>
+                                                        <input type="number" x-model.number="form.max_cycles" x-ref="cycleInput" min="100" max="10000" required
+                                                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" 
+                                                            placeholder="Maksimal 10000"
+                                                            />
+                                                        <p class="mt-1 text-xs text-gray-500">Batas pengulangan pencarian jika solusi 0 konflik belum ditemukan. Minimal: 100, Maksimal: 10000.</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -248,7 +252,9 @@
                             </div>
                         </div>
                     </div>
+                    </div>
                 </div>
+                </form>
             </div>
         </div>
 
@@ -337,8 +343,6 @@
                 form: {
                     judul: '',
                     tahun_ajaran: '{{ date("Y") . "/" . (date("Y")+1) }}',
-                    semester: 'Ganjil',
-                    population: 50,
                     semester: 'Ganjil',
                     population: 50,
                     max_cycles: 1000,
@@ -456,6 +460,18 @@
                 },
 
                 async submitGenerate() {
+                    // Manual Native Validation Trigger for hidden modal inputs
+                    if (!this.$refs.formEl.checkValidity()) {
+                        // If it's the modal inputs causing error, pop it open so tooltips can show
+                        if (!this.$refs.popInput.validity.valid || !this.$refs.cycleInput.validity.valid) {
+                            this.isModalOpen = true;
+                        }
+                        
+                        this.$nextTick(() => {
+                            this.$refs.formEl.reportValidity(); // Tampilkan popup error browser bawaan
+                        });
+                        return;
+                    }
                     const result = await Swal.fire({
                         title: 'Konfirmasi Generate',
                         text: "Proses ini akan mencari jadwal terbaik dengan algoritma Artificial Bee Colony. Lanjutkan?",
