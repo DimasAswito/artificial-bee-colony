@@ -27,6 +27,25 @@
     <tbody>
         @foreach($haris as $hari)
             @foreach($jams as $index => $jam)
+                @php
+                    $isJumat = $hari->nama_hari === 'Jumat';
+                    $jamMulaiStr = \Carbon\Carbon::parse($jam->jam_mulai)->format('H:i');
+                @endphp
+
+                @if($isJumat && ($jamMulaiStr == '11:00' || $jamMulaiStr == '11:30'))
+                    <tr>
+                        @if($jamMulaiStr == '11:00')
+                            <td rowspan="2" style="border: 1px solid #000000; text-align: center; vertical-align: middle; background-color: #d3d3d3; font-weight: bold;">
+                                11.00 - 13.00
+                            </td>
+                            <td rowspan="2" colspan="{{ $ruangans->count() }}" style="border: 1px solid #000000; text-align: center; vertical-align: middle; background-color: #d3d3d3; font-weight: bold;">
+                                SHOLAT JUMAT
+                            </td>
+                        @endif
+                    </tr>
+                    @continue
+                @endif
+
                 <tr>
                     {{-- Render Hari Column only for the first Jam of the day --}}
                     @if($index === 0)
@@ -81,6 +100,7 @@
                         </td>
                     </tr>
                 @endif
+                
             @endforeach
             <!-- Separator Row Between Days -->
             <tr>
