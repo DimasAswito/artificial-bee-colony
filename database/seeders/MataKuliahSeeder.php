@@ -16,6 +16,7 @@ class MataKuliahSeeder extends Seeder
         $matkul = [
             [
                 'nama_matkul' => 'Agama',
+                'dosen_id' => '11',
                 'kode_mk' => 'TIF410801',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -25,6 +26,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Pancasila',
+                'dosen_id' => '10',
                 'kode_mk' => 'TIF410802',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -34,6 +36,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Basic English',
+                'dosen_id' => '9',
                 'kode_mk' => 'TIF410803',
                 'sks_teori' => '1',
                 'sks_praktek' => '1',
@@ -43,6 +46,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Logika dan Algoritma',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF410804',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -52,6 +56,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Interaksi Manusia dan Komputer',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF410805',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -60,6 +65,7 @@ class MataKuliahSeeder extends Seeder
                 'created_at' => now(),
             ],            [
                 'nama_matkul' => 'Pemrograman Dasar',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF410806',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -69,6 +75,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Berbasis Desktop A',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF410807',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -78,6 +85,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Berbasis Desktop B',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF410807',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -87,6 +95,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Berbasis Desktop C',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF410807',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -96,6 +105,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Basis Data A',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF410808',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -105,6 +115,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Basis Data B',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF410808',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -114,6 +125,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Basis Data C',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF410808',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -123,6 +135,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Bahasa Indonesia',
+                'dosen_id' => '8',
                 'kode_mk' => 'TIF420801',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -132,6 +145,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Kewarganegaraan',
+                'dosen_id' => '10',
                 'kode_mk' => 'TIF420802',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -141,6 +155,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Intermediate English',
+                'dosen_id' => '9',
                 'kode_mk' => 'TIF420803',
                 'sks_teori' => '1',
                 'sks_praktek' => '1',
@@ -150,6 +165,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Sistem Operasi',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF420804',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -159,6 +175,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Konsep Dasar Jaringan',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF420805',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -168,6 +185,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Perencanaan  Perangkat Lunak',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF420806',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -177,6 +195,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Berbasis Web 1 A',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF420807',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -186,6 +205,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Berbasis Web 1 B',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF420807',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -195,6 +215,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Berbasis Web 1 C',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF420807',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -204,6 +225,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Rekayasa Perangkat Lunak A',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF420808',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -213,6 +235,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Rekayasa Perangkat Lunak B',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF420808',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -222,6 +245,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Rekayasa Perangkat Lunak C',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF420808',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -232,6 +256,7 @@ class MataKuliahSeeder extends Seeder
             // kurikulum 2021==========================================================================================================================
             [
                 'nama_matkul' => 'Interpersonal Skill',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF430701',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -241,6 +266,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Matematika Diskrit',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF430702',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -250,6 +276,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Konsep Jaringan Komputer',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF430703',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -259,6 +286,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Struktur Data',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF430704',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -268,6 +296,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Kualitas Perangkat Lunak A',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF430705',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -277,6 +306,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Kualitas Perangkat Lunak B',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF430705',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -286,6 +316,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Berbasis Web A',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF430706',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -295,6 +326,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Berbasis Web B',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF430706',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -304,6 +336,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Mobile Applications A',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF430707',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -313,6 +346,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Mobile Applications B',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF430707',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -322,6 +356,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Literasi Digital',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF440701',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -331,6 +366,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Kewirausahaan',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF440702',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -340,6 +376,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Manajemen Kualitas Perangkat Lunak',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF440703',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -349,6 +386,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Perawatan Perangkat Lunak',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF440704',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -358,6 +396,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Pengujian Perangkat Lunak',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF440705',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -367,6 +406,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Web Framework A',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF440706',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -376,6 +416,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Informasi Web Framework B',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF440706',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -385,6 +426,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Mobile Applications Framework A',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF440707',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -394,6 +436,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Mobile Applications Framework B',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF440707',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -403,6 +446,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Aplikasi Sistem Tertanam',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF450701',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -412,6 +456,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Sistem Cerdas',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF450702',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -430,6 +475,7 @@ class MataKuliahSeeder extends Seeder
             // ],
             [
                 'nama_matkul' => 'Sistem Informasi Enterprise',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF450703',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -439,6 +485,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Multimedia Permainan',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF450704',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -448,6 +495,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Pengolahan Citra dan Vision A',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF450705',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -457,6 +505,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Pengolahan Citra dan Vision B',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF450705',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -466,6 +515,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Tertanam A',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF450706',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -475,6 +525,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Tertanam B',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF450706',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -484,6 +535,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Cerdas A',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF450707',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -493,6 +545,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Sistem Cerdas B',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF450707',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',
@@ -502,6 +555,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Teknik Penulisan Ilmiah',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF460701',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',
@@ -511,6 +565,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Statistika',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF460702',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',   
@@ -520,6 +575,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Tren Teknologi',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF460703',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',   
@@ -529,6 +585,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Data Warehouse',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF460704',
                 'sks_teori' => '2',
                 'sks_praktek' => '0',   
@@ -538,6 +595,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Developer Operational',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF460705',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',   
@@ -547,6 +605,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Developer Operational B',
+                'dosen_id' => '5',
                 'kode_mk' => 'TIF460705',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',   
@@ -556,6 +615,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Tata Kelola Teknologi Informasi',
+                'dosen_id' => '7',
                 'kode_mk' => 'TIF460706',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',   
@@ -565,6 +625,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Tata Kelola Teknologi Informasi B',
+                'dosen_id' => '1',
                 'kode_mk' => 'TIF460706',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',   
@@ -574,6 +635,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Proyek Sistem Informasi',
+                'dosen_id' => '2',
                 'kode_mk' => 'TIF460707',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',   
@@ -583,6 +645,7 @@ class MataKuliahSeeder extends Seeder
             ],
             [
                 'nama_matkul' => 'Workshop Proyek Sistem Informasi B',
+                'dosen_id' => '4',
                 'kode_mk' => 'TIF460707',
                 'sks_teori' => '0',
                 'sks_praktek' => '4',   
@@ -592,8 +655,8 @@ class MataKuliahSeeder extends Seeder
             ],
         ];
 
-        foreach ($matkul as $matkul) {
-            MataKuliah::create($matkul);
+        foreach ($matkul as $mk) {
+            MataKuliah::create($mk);
         }
     }
 }

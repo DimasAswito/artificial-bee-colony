@@ -55,10 +55,10 @@
                             <!-- Dosen (Dropdown - Optional) -->
                             <div class="relative z-20 bg-transparent">
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Dosen Pengampu (Opsional)
+                                    Dosen Pengampu <span class="text-error-500">*</span>
                                 </label>
                                 <div x-data="{ isOptionSelected: false }" class="relative">
-                                     <select x-model="form.dosen_id"
+                                     <select x-model="form.dosen_id" required
                                         class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                                         :class="isOptionSelected && 'text-gray-800 dark:text-white/90'" @change="isOptionSelected = true">
                                         <option value="" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">Pilih Dosen</option>
@@ -370,10 +370,10 @@
                              <!-- Dosen (Dropdown - Optional) -->
                             <div class="relative z-20 bg-transparent">
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Dosen Pengampu (Opsional)
+                                    Dosen Pengampu <span class="text-error-500">*</span>
                                 </label>
                                 <div x-data="{ isOptionSelected: false }" class="relative">
-                                     <select x-model="form.dosen_id"
+                                     <select x-model="form.dosen_id" required
                                         class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                                         :class="isOptionSelected && 'text-gray-800 dark:text-white/90'" @change="isOptionSelected = true">
                                         <option value="" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">Pilih Dosen</option>
@@ -463,7 +463,8 @@
                     try {
                         const response = await fetch('{{ route('dosen.data') }}');
                         const data = await response.json();
-                        this.dosenList = data;
+                        // Filter to show only active dosens
+                        this.dosenList = data.filter(d => d.status === 'Active' || d.status === null);
                     } catch (error) {
                         console.error('Error fetching dosen list:', error);
                     }
@@ -584,7 +585,7 @@
                 },
 
                 async saveMataKuliah() {
-                    if (!this.form.kode_mk || !this.form.name || this.form.sks_teori === '' || this.form.sks_praktek === '') {
+                    if (!this.form.kode_mk || !this.form.name || this.form.sks_teori === '' || this.form.sks_praktek === '' || !this.form.dosen_id) {
                         Swal.fire('Error', 'Semua kolom bertanda bintang wajib diisi', 'error');
                         return;
                     }

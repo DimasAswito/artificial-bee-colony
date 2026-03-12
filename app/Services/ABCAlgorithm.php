@@ -41,15 +41,8 @@ class ABCAlgorithm
       })
       ->values();
 
-    // Batasan: Dosen yang sudah ditugaskan untuk mata kuliah tertentu.
-    // Dosen yang TIDAK ada di assignedDosenIds dianggap "Dosen Kosong" yang bisa diset otomatis.
-    $allMataKuliah = MataKuliah::where('status', 'Active')->get();
-    $assignedDosenIds = $allMataKuliah->pluck('dosen_id')->filter()->unique();
-
+    // Dosen aktif
     $this->data['dosen'] = Dosen::where('status', 'Active')->get();
-
-    // Simpan Dosen Bebas (Dosen Aktif yang TIDAK ada di assignedDosenIds)
-    $this->data['free_dosens'] = $this->data['dosen']->whereNotIn('id', $assignedDosenIds)->values();
 
     // Poin 2: Pisah pool ruangan Teori dan Praktek
     $this->data['ruangan'] = Ruangan::where('status', 'Active')->get();
@@ -203,18 +196,8 @@ class ABCAlgorithm
 
       $totalDurationSlots = $durasiTeoriSlots + $durasiPraktekSlots; // Jika campuran, total digabung
 
-      // Konstrain B2: Mata kuliah HANYA diajar dosen pengampunya
+      // Konstrain B2: Mata kuliah WAJIB diajar dosen pengampunya
       $dosenId = $mk->dosen_id;
-
-      // Jika dosen kosong di DB, tugaskan dosen bebas secara acak
-      if (!$dosenId) {
-        if ($this->data['free_dosens']->isNotEmpty()) {
-          $dosenId = $this->data['free_dosens']->random()->id;
-        } else {
-          // Fallback terakhir jika anehnya tidak ada dosen bebas, ambil dosen sembarang
-          $dosenId = $this->data['dosen']->random()->id;
-        }
-      }
 
       $usedHariIds = [];
       $occurrences = max(1, $occurrencesPraktek);
