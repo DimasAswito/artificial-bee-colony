@@ -76,16 +76,16 @@ class ABCAlgorithm
 
     // 2. Initialize Population
     $population = [];
-    $popStartTime = time();
+    // $popStartTime = time();
     for ($i = 0; $i < $this->populationSize; $i++) {
       // Failsafe Timeout: Jika inisialisasi awal terlalu berat. (Max 15 detik agar masih ada sisa waktu untuk iterasi algoritma)
-      if ((time() - $popStartTime) > 15) {
-          if (count($population) > 0) {
-             break; // Jalankan dengan sisa populasi yang berhasil tergenerate
-          } else {
-             throw new \Exception("Gagal menginisialisasi populasi dalam waktu 15 detik. Parameter terlalu berat atau kelas tidak muat ditempatkan manapun. Coba kurangi Jam SKS / Populasinya.");
-          }
-      }
+      // if ((time() - $popStartTime) > 15) {
+      //     if (count($population) > 0) {
+      //        break; // Jalankan dengan sisa populasi yang berhasil tergenerate
+      //     } else {
+      //        throw new \Exception("Gagal menginisialisasi populasi dalam waktu 15 detik. Parameter terlalu berat atau kelas tidak muat ditempatkan manapun. Coba kurangi Jam SKS / Populasinya.");
+      //     }
+      // }
       $scheduleData = $this->generateRandomSchedule();
       $population[] = ['data' => $scheduleData, 'trial' => 0, 'fitness' => $this->calculateFitness($scheduleData)];
     }
@@ -94,7 +94,7 @@ class ABCAlgorithm
     usort($population, fn($a, $b) => $a['fitness'] <=> $b['fitness']);
     $bestSolution = $population[0];
     $cyclesWithoutConflict = 0;
-    $stoppedBy = 'max_cycles'; // Default: selesai karena habis siklus
+    
     $startTime = time();
 
     for ($cycle = 0; $cycle < $this->maxCycles; $cycle++) {
@@ -138,18 +138,15 @@ class ABCAlgorithm
       }
 
       // Soft Timeout: Jika sudah berjalan > 55 detik, paksa berhenti (Webserver/Nginx Proxy biasanya memotong di 60 detik)
-      if ((time() - $startTime) > 55) {
-          break;
-      }
+      // if ((time() - $startTime) > 55) {
+      //     break;
+      // }
 
       // 7. Termination Condition (gunakan cached fitness)
       if ($bestSolution['fitness'] < 1000000) {
         $cyclesWithoutConflict++;
         // Beri waktu 50 cycle ekstra untuk lebah "memampatkan" jadwal ke pagi hari
-        if ($cyclesWithoutConflict > 50) {
-          $stoppedBy = 'conflict_free'; // Dihentikan karena sudah 0 konflik stabil
-          break;
-        }
+        if ($cyclesWithoutConflict > 50) break;
       } else {
         $cyclesWithoutConflict = 0; // Reset
       }
@@ -159,11 +156,10 @@ class ABCAlgorithm
     $finalConflicts = $this->countConflicts($bestSolution['data']);
 
     return [
-      'schedule'     => $bestSolution['data'],
-      'fitness'      => $bestSolution['fitness'],
-      'conflicts'    => $finalConflicts,
-      'iterations'   => $cycle,
-      'stopped_by'   => $stoppedBy, // 'conflict_free' | 'max_cycles'
+      'schedule'   => $bestSolution['data'],
+      'fitness'    => $bestSolution['fitness'],
+      'conflicts'  => $finalConflicts,
+      'iterations' => $cycle
     ];
   }
 
