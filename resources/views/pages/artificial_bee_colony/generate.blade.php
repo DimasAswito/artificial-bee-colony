@@ -505,10 +505,17 @@
                                 throw new Error(errorMsg);
                             }
 
+                            const stoppedLabel = data.stopped_by === 'conflict_free'
+                                ? '✅ Selesai: 0 Konflik Tercapai (Berhenti Dini)'
+                                : '⚠️ Selesai: Habis Siklus Max (' + data.iterations + ' iterasi)';
+
                             Swal.fire({
                                 title: 'Berhasil!',
-                                text: `Jadwal berhasil digenerate dengan nilai fitness conflict: ${data.fitness}`,
-                                icon: 'success'
+                                html: `Jadwal berhasil digenerate.<br><br>
+                                        <b>Konflik:</b> ${data.fitness}<br>
+                                        <b>Iterasi:</b> ${data.iterations}<br>
+                                        <small style="color:gray">${stoppedLabel}</small>`,
+                                icon: data.fitness === 0 ? 'success' : 'warning'
                             }).then(() => {
                                 window.location.reload(); // Reload to show history
                             });

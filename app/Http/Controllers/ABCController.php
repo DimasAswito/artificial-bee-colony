@@ -84,6 +84,8 @@ class ABCController extends Controller
             'success' => true,
             'message' => 'Jadwal berhasil digenerate!',
             'fitness' => $result['conflicts'], // Kirim konflik murni ke Pop-up UI
+            'iterations' => $result['iterations'],
+            'stopped_by' => $result['stopped_by'],
             'history_id' => $history->id
         ]);
     }
