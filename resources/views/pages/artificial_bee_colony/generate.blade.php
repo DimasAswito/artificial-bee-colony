@@ -500,7 +500,7 @@
                             if (!response.ok) {
                                 let errorMsg = data.message || 'Terjadi kesalahan saat generate';
                                 if (data.details) {
-                                    errorMsg += '\n\n' + data.details;
+                                    errorMsg += '<br>' + data.details;
                                 }
                                 throw new Error(errorMsg);
                             }
@@ -515,7 +515,11 @@
 
                         } catch (error) {
                             console.error('Generate error:', error);
-                            Swal.fire('Gagal', error.message, 'error');
+                            Swal.fire({
+                                title: 'Gagal',
+                                html: error.message,
+                                icon: 'error'
+                            });
                         } finally {
                             this.isGenerating = false;
                         }

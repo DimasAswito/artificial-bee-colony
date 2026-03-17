@@ -89,8 +89,8 @@
                         @endif
                     @endforeach
                 </tr>
-                {{-- Inject Break Row automatically after the 12:00 ending slot --}}
-                @if(\Carbon\Carbon::parse($jam->jam_selesai)->format('H:i') == '12:00' && $hari->nama_hari !== 'Jumat')
+                {{-- Inject Break Row only if there's no active slot in the 12:00-13:00 window --}}
+                @if(\Carbon\Carbon::parse($jam->jam_selesai)->format('H:i') == '12:00' && $hari->nama_hari !== 'Jumat' && !$hasLunchSlot)
                     <tr>
                         <td style="border: 1px solid #000000; text-align: center; vertical-align: middle; background-color: #d3d3d3; font-weight: bold;">
                             12.00 - 13.00

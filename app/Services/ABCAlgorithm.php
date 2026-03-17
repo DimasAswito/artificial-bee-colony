@@ -16,6 +16,7 @@ class ABCAlgorithm
   protected $semester;
   protected $durasi4Sks;
   protected $limit;
+  protected $hasLunchSlot = false; // Apakah ada slot jam aktif di rentang 12:00-13:00
 
   protected $data = [];
 
@@ -54,6 +55,16 @@ class ABCAlgorithm
 
     $this->data['hari'] = Hari::where('status', 'Active')->get();
     $this->data['jam'] = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->values();
+
+    // Deteksi dinamis: Apakah ada slot jam aktif yang berada di rentang 12:00 - 13:00?
+    $this->hasLunchSlot = $this->data['jam']->contains(function ($jam) {
+      $mulai = \Carbon\Carbon::parse($jam->jam_mulai);
+      $selesai = \Carbon\Carbon::parse($jam->jam_selesai);
+      $lunch_start = \Carbon\Carbon::parse('12:00:00');
+      $lunch_end = \Carbon\Carbon::parse('13:00:00');
+      // Cek apakah slot ini ada di dalam (atau bersentuhan dengan) rentang istirahat
+      return $mulai >= $lunch_start && $selesai <= $lunch_end;
+    });
   }
 
   public function run()
@@ -65,19 +76,34 @@ class ABCAlgorithm
 
     // 2. Initialize Population
     $population = [];
+    // $popStartTime = time();
     for ($i = 0; $i < $this->populationSize; $i++) {
-      $population[] = ['data' => $this->generateRandomSchedule(), 'trial' => 0];
+      // Failsafe Timeout: Jika inisialisasi awal terlalu berat. (Max 15 detik agar masih ada sisa waktu untuk iterasi algoritma)
+      // if ((time() - $popStartTime) > 15) {
+      //     if (count($population) > 0) {
+      //        break; // Jalankan dengan sisa populasi yang berhasil tergenerate
+      //     } else {
+      //        throw new \Exception("Gagal menginisialisasi populasi dalam waktu 15 detik. Parameter terlalu berat atau kelas tidak muat ditempatkan manapun. Coba kurangi Jam SKS / Populasinya.");
+      //     }
+      // }
+      $scheduleData = $this->generateRandomSchedule();
+      $population[] = ['data' => $scheduleData, 'trial' => 0, 'fitness' => $this->calculateFitness($scheduleData)];
     }
 
-    $bestSolution = $this->getBestSolution($population);
+    // Temukan solusi terbaik awal
+    usort($population, fn($a, $b) => $a['fitness'] <=> $b['fitness']);
+    $bestSolution = $population[0];
     $cyclesWithoutConflict = 0;
+    
+    $startTime = time();
 
     for ($cycle = 0; $cycle < $this->maxCycles; $cycle++) {
       // 3. Employed Bees Phase
       foreach ($population as $i => $schedule) {
         $newScheduleData = $this->mutate($schedule['data']);
-        if ($this->calculateFitness($newScheduleData) < $this->calculateFitness($schedule['data'])) {
-          $population[$i] = ['data' => $newScheduleData, 'trial' => 0];
+        $newFitness = $this->calculateFitness($newScheduleData);
+        if ($newFitness < $schedule['fitness']) {
+          $population[$i] = ['data' => $newScheduleData, 'trial' => 0, 'fitness' => $newFitness];
         } else {
           $population[$i]['trial']++;
         }
@@ -88,8 +114,9 @@ class ABCAlgorithm
       for ($i = 0; $i < $this->populationSize; $i++) {
         $idx = $this->selectByProbability($probs);
         $newScheduleData = $this->mutate($population[$idx]['data']);
-        if ($this->calculateFitness($newScheduleData) < $this->calculateFitness($population[$idx]['data'])) {
-          $population[$idx] = ['data' => $newScheduleData, 'trial' => 0];
+        $newFitness = $this->calculateFitness($newScheduleData);
+        if ($newFitness < $population[$idx]['fitness']) {
+          $population[$idx] = ['data' => $newScheduleData, 'trial' => 0, 'fitness' => $newFitness];
         } else {
           $population[$idx]['trial']++;
         }
@@ -98,20 +125,25 @@ class ABCAlgorithm
       // 5. Scout Bees Phase
       foreach ($population as $i => $schedule) {
         if ($schedule['trial'] > $this->limit) {
-          $population[$i] = ['data' => $this->generateRandomSchedule(), 'trial' => 0];
+          $newData = $this->generateRandomSchedule();
+          $population[$i] = ['data' => $newData, 'trial' => 0, 'fitness' => $this->calculateFitness($newData)];
         }
       }
 
-      // 6. Update Best Solution
-      $currentBest = $this->getBestSolution($population);
-      if ($this->calculateFitness($currentBest['data']) < $this->calculateFitness($bestSolution['data'])) {
-        $bestSolution = $currentBest;
+      // 6. Update Best Solution (menggunakan fitness ter-cache, tanpa re-kalkulasi)
+      foreach ($population as $ind) {
+        if ($ind['fitness'] < $bestSolution['fitness']) {
+          $bestSolution = $ind;
+        }
       }
 
-      // 7. Termination Condition
-      // Tabrakan (Konflik) digandakan 1 Juta poin. Jika < 1 Juta, berarti solusi bebas konflik.
-      $bestFitness = $this->calculateFitness($bestSolution['data']);
-      if ($bestFitness < 1000000) {
+      // Soft Timeout: Jika sudah berjalan > 55 detik, paksa berhenti (Webserver/Nginx Proxy biasanya memotong di 60 detik)
+      // if ((time() - $startTime) > 55) {
+      //     break;
+      // }
+
+      // 7. Termination Condition (gunakan cached fitness)
+      if ($bestSolution['fitness'] < 1000000) {
         $cyclesWithoutConflict++;
         // Beri waktu 50 cycle ekstra untuk lebah "memampatkan" jadwal ke pagi hari
         if ($cyclesWithoutConflict > 50) break;
@@ -125,7 +157,7 @@ class ABCAlgorithm
 
     return [
       'schedule'   => $bestSolution['data'],
-      'fitness'    => $this->calculateFitness($bestSolution['data']),
+      'fitness'    => $bestSolution['fitness'],
       'conflicts'  => $finalConflicts,
       'iterations' => $cycle
     ];
@@ -290,10 +322,13 @@ class ABCAlgorithm
     $selesai = Carbon::parse($endJam->jam_selesai);
 
     // Konstrain B4: Cek strict barrier jam 12:00 (Istirahat Siang)
-    // Kelas tidak boleh menyeberangi jam 12:00. Jika mulai sebelum 12 dan selesai sesudah 12 = Invalid.
-    $jam12 = Carbon::parse('12:00:00');
-    if ($mulai < $jam12 && $selesai > $jam12) {
-      return false;
+    // HANYA diterapkan jika tidak ada slot jam aktif di rentang 12:00-13:00.
+    // Jika admin mengaktifkan slot makan siang, constraint ini dinonaktifkan.
+    if (!$this->hasLunchSlot) {
+      $jam12 = \Carbon\Carbon::parse('12:00:00');
+      if ($mulai < $jam12 && $selesai > $jam12) {
+        return false;
+      }
     }
 
     // Konstrain B5: Aturan Sholat Jumat (11:00 - 13:00)
@@ -423,8 +458,8 @@ class ABCAlgorithm
     $fitnesses = [];
     $total = 0;
     foreach ($population as $ind) {
-      $fitValue = $this->calculateFitness($ind['data']);
-      // Inverse fitness karena algoritma mencari angka mengecil (0 Konflik)
+      // Gunakan cached fitness yang sudah tersimpan di array populasi
+      $fitValue = $ind['fitness'];
       $invFit = 1 / (1 + $fitValue);
       $fitnesses[] = $invFit;
       $total += $invFit;

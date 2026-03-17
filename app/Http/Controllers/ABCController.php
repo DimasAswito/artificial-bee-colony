@@ -244,7 +244,12 @@ class ABCController extends Controller
             'jams' => $jams,
             'ruangans' => $ruangans,
             'grid' => $grid,
-            'durations' => $durations // Pass this
+            'durations' => $durations, // Pass this
+            'hasLunchSlot' => \App\Models\Jam::where('status', 'Active')->get()->contains(function ($jam) {
+                $mulai = \Carbon\Carbon::parse($jam->jam_mulai);
+                $selesai = \Carbon\Carbon::parse($jam->jam_selesai);
+                return $mulai >= \Carbon\Carbon::parse('12:00:00') && $selesai <= \Carbon\Carbon::parse('13:00:00');
+            }),
         ];
 
         $rawFilename = sprintf('Jadwal %s semester %s %s.xlsx', $history->judul, $history->semester, $history->tahun_ajaran);
@@ -361,7 +366,7 @@ class ABCController extends Controller
             return [
                 'success' => false,
                 'message' => "Kapasitas ruangan tidak mencukupi!",
-                'details' => "Dibutuhkan {$totalSlotsNeeded} slot, tetapi hanya tersedia {$totalCapacitySlots} slot. Kurang: " . ($totalSlotsNeeded - $totalCapacitySlots) . " slot."
+                'details' => "Dibutuhkan {$totalSlotsNeeded} slot waktu, tetapi hanya tersedia {$totalCapacitySlots} slot. Kurang: " . ($totalSlotsNeeded - $totalCapacitySlots) . " slot.<br><br>Anda dapat mengurangi waktu workshop tiap pertemuan atau menonaktifkan beberapa mata kuliah."
             ];
         }
 
