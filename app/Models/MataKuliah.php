@@ -18,6 +18,7 @@ class MataKuliah extends Model
         'sks_teori',
         'sks_praktek',
         'semester',
+        'kelas',
         'dosen_id',
         'status',
     ];

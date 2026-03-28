@@ -89,7 +89,7 @@ class ABCController extends Controller
     }
     public function riwayat()
     {
-        $history = RiwayatPenjadwalan::latest()->get();
+        $history = RiwayatPenjadwalan::latest()->paginate(10);
         return view('pages.artificial_bee_colony.riwayat', compact('history'));
     }
 
@@ -134,10 +134,25 @@ class ABCController extends Controller
 
                     // Cek Irisan
                     if ($aIndex < $bEnd && $bIndex < $aEnd) {
-                        // Cek Konflik Ruangan atau Dosen
-                        if ($a->ruangan_id == $b->ruangan_id || $a->dosen_id == $b->dosen_id) {
+                        $aSemester  = $a->mataKuliah->semester ?? null;
+                        $bSemester  = $b->mataKuliah->semester ?? null;
+                        $aIsTeori   = ($a->mataKuliah->sks_teori ?? 0) > 0;
+                        $bIsTeori   = ($b->mataKuliah->sks_teori ?? 0) > 0;
+                        $aKelas     = $a->mataKuliah->kelas ?? '';
+                        $bKelas     = $b->mataKuliah->kelas ?? '';
+
+                        $isConflict = false;
+                        // Konflik ruangan
+                        if ($a->ruangan_id == $b->ruangan_id) $isConflict = true;
+                        // Konflik dosen
+                        if ($a->dosen_id && $a->dosen_id == $b->dosen_id) $isConflict = true;
+                        // Konflik semester: salah satu Teori di semester yang sama
+                        if ($aSemester == $bSemester && ($aIsTeori || $bIsTeori)) $isConflict = true;
+                        // Konflik kelas workshop: dua workshop kelas yang sama di semester yang sama
+                        if ($aSemester == $bSemester && !$aIsTeori && !$bIsTeori && !empty($aKelas) && $aKelas == $bKelas) $isConflict = true;
+
+                        if ($isConflict) {
                             $conflictingIds[] = $a->id;
-                            // Tidak perlu break, biarkan loop menandai semua yang terlibat
                         }
                     }
                 }
