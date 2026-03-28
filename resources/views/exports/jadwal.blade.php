@@ -49,7 +49,10 @@
                 <tr>
                     {{-- Render Hari Column only for the first Jam of the day --}}
                     @if($index === 0)
-                        <td rowspan="{{ $hari->nama_hari === 'Jumat' ? $jams->count() : $jams->count() + 1 }}" style="border: 1px solid #000000; text-align: center; vertical-align: middle; font-weight: bold;">
+                        @php
+                            $extraRow = ($hari->nama_hari !== 'Jumat' && !$hasLunchSlot) ? 1 : 0;
+                        @endphp
+                        <td rowspan="{{ $jams->count() + $extraRow }}" style="border: 1px solid #000000; text-align: center; vertical-align: middle; font-weight: bold;">
                             {{ $hari->nama_hari }}
                         </td>
                     @endif

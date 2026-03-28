@@ -366,7 +366,8 @@ class ABCController extends Controller
             return [
                 'success' => false,
                 'message' => "Kapasitas ruangan tidak mencukupi!",
-                'details' => "Dibutuhkan {$totalSlotsNeeded} slot waktu, tetapi hanya tersedia {$totalCapacitySlots} slot. Kurang: " . ($totalSlotsNeeded - $totalCapacitySlots) . " slot.<br><br>Anda dapat mengurangi waktu workshop tiap pertemuan atau menonaktifkan beberapa mata kuliah."
+                // 'details' => "Dibutuhkan {$totalSlotsNeeded} slot waktu, tetapi hanya tersedia {$totalCapacitySlots} slot. Kurang: " . ($totalSlotsNeeded - $totalCapacitySlots) . " slot.<br><br>Anda dapat mengurangi waktu workshop tiap pertemuan atau menonaktifkan beberapa mata kuliah."
+                'details' => "<br>Anda dapat mengurangi waktu workshop tiap pertemuan atau menonaktifkan beberapa mata kuliah."
             ];
         }
 
