@@ -155,6 +155,7 @@
                                 </button>
                             </div>
                         </div>
+                    </div> <!-- End of grid grid-cols-1 gap-6 md:grid-cols-2 -->
 
                     <div class="mt-8 p-4 bg-yellow-50 text-yellow-800 border-l-4 border-yellow-400 rounded-r dark:bg-yellow-900/20 dark:text-yellow-200 dark:border-yellow-600">
                         <div class="flex">
@@ -252,8 +253,6 @@
                             </div>
                         </div>
                     </div>
-                    </div>
-                </div>
                 </form>
             </div>
         </div>

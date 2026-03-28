@@ -30,7 +30,7 @@
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             @forelse ($history as $index => $item)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $index + 1 }}</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $history->firstItem() + $index }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap font-medium text-gray-800 dark:text-white">{{ $item->judul }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $item->tahun_ajaran }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm">
@@ -87,6 +87,39 @@
                     </table>
                 </div>
             </div>
+
+            {{-- Pagination --}}
+            @if ($history->hasPages())
+                <div class="flex items-center justify-between border-t border-gray-200 px-5 py-3 dark:border-gray-700 sm:px-6">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        Menampilkan {{ $history->firstItem() }}–{{ $history->lastItem() }} dari {{ $history->total() }} riwayat
+                    </div>
+                    <div class="flex gap-1">
+                        {{-- Previous --}}
+                        @if ($history->onFirstPage())
+                            <span class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed">‹ Prev</span>
+                        @else
+                            <a href="{{ $history->previousPageUrl() }}" class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.05]">‹ Prev</a>
+                        @endif
+
+                        {{-- Page numbers --}}
+                        @foreach ($history->getUrlRange(1, $history->lastPage()) as $page => $url)
+                            @if ($page == $history->currentPage())
+                                <span class="inline-flex items-center rounded-lg border border-blue-500 bg-blue-500 px-3 py-1.5 text-xs font-medium text-white">{{ $page }}</span>
+                            @else
+                                <a href="{{ $url }}" class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.05]">{{ $page }}</a>
+                            @endif
+                        @endforeach
+
+                        {{-- Next --}}
+                        @if ($history->hasMorePages())
+                            <a href="{{ $history->nextPageUrl() }}" class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.05]">Next ›</a>
+                        @else
+                            <span class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed">Next ›</span>
+                        @endif
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
