@@ -49,9 +49,10 @@ class ABCAlgorithm
         $this->data['mata_kuliah'] = MataKuliah::where('status', 'Active')
             ->with('dosen')
             ->get()
-            ->filter(fn($mk) => $this->semester === 'Ganjil'
-                ? ((int)$mk->semester % 2 != 0)
-                : ((int)$mk->semester % 2 == 0)
+            ->filter(
+                fn($mk) => $this->semester === 'Ganjil'
+                    ? ((int)$mk->semester % 2 != 0)
+                    : ((int)$mk->semester % 2 == 0)
             )
             ->values();
 
@@ -83,8 +84,10 @@ class ABCAlgorithm
     public function run(): array
     {
         // Amankan jika data master kosong
-        if ($this->data['mata_kuliah']->isEmpty() || $this->data['ruangan']->isEmpty()
-            || $this->data['hari']->isEmpty() || $this->data['jam']->isEmpty()) {
+        if (
+            $this->data['mata_kuliah']->isEmpty() || $this->data['ruangan']->isEmpty()
+            || $this->data['hari']->isEmpty() || $this->data['jam']->isEmpty()
+        ) {
             return ['schedule' => [], 'fitness' => 0, 'iterations' => 0, 'conflicts' => 0, 'stopped_by' => 'empty_data'];
         }
 
@@ -217,64 +220,64 @@ class ABCAlgorithm
      *    yang sama di semester yang sama menghindari satu sama lain.
      *    Contoh: WS Web A dan WS Mobile A (kelas A, sem 3) tidak saling bertumpuk.
      */
-    protected function generateRandomSchedule(): array
-    {
-        $schedule = [];
+protected function generateRandomSchedule(): array
+{
+    $schedule = [];
 
-        // Teori duluan agar slot-nya terdaftar sebelum Workshop ditempatkan
-        $sorted = $this->data['mata_kuliah']->sortByDesc(fn($mk) => $mk->sks_teori > 0)->values();
+    // Teori duluan agar slot-nya terdaftar sebelum Workshop ditempatkan
+    $sorted = $this->data['mata_kuliah']->sortByDesc(fn($mk) => $mk->sks_teori > 0)->values();
 
-        // Tracker slot Teori: [semester][hari_id] => [[start, end], ...]
-        $teoriSlots = [];
-        // Tracker slot Workshop per-kelas: [semester][kelas][hari_id] => [[start, end], ...]
-        $kelasSlots = [];
-        // Tracker slot Dosen: [dosen_id][hari_id] => [[start, end], ...]
-        // Mencegah 1 dosen mengajar 2 kelas berbeda di waktu yang sama (lintas semester)
-        $dosenSlots = [];
+    // Tracker slot Teori: [semester][hari_id] => [[start, end], ...]
+    $teoriSlots = [];
+    // Tracker slot Workshop per-kelas: [semester][kelas][hari_id] => [[start, end], ...]
+    $kelasSlots = [];
+    // Tracker slot Dosen: [dosen_id][hari_id] => [[start, end], ...]
+    // Mencegah 1 dosen mengajar 2 kelas berbeda di waktu yang sama (lintas semester)
+    $dosenSlots = [];
 
-        foreach ($sorted as $mk) {
-            [$totalDurationSlots, $occurrences] = $this->calculateDurationSlots($mk);
+    foreach ($sorted as $mk) {
+        [$totalDurationSlots, $occurrences] = $this->calculateDurationSlots($mk);
 
-            $usedHariIds = [];
-            for ($i = 0; $i < $occurrences; $i++) {
-                $assignment = $this->getRandomAssignment(
-                    $mk,
-                    $mk->dosen_id,
-                    $totalDurationSlots,
-                    $usedHariIds,
-                    $teoriSlots,
-                    $kelasSlots,
-                    $dosenSlots
-                );
+        $usedHariIds = [];
+        for ($i = 0; $i < $occurrences; $i++) {
+            $assignment = $this->getRandomAssignment(
+                $mk,
+                $mk->dosen_id,
+                $totalDurationSlots,
+                $usedHariIds,
+                $teoriSlots,
+                $kelasSlots,
+                $dosenSlots
+            );
 
-                if ($assignment) {
-                    $schedule[]    = $assignment;
-                    $usedHariIds[] = $assignment['hari_id']; // B3: Sesi MK yang sama harus beda hari
+            if ($assignment) {
+                $schedule[]    = $assignment;
+                $usedHariIds[] = $assignment['hari_id']; // B3: Sesi MK yang sama harus beda hari
 
-                    $sem   = $mk->semester;
-                    $hId   = $assignment['hari_id'];
-                    $start = $assignment['jam_index'];
-                    $end   = $start + $assignment['duration_slots'];
+                $sem   = $mk->semester;
+                $hId   = $assignment['hari_id'];
+                $start = $assignment['jam_index'];
+                $end   = $start + $assignment['duration_slots'];
 
-                    if ($mk->sks_teori > 0) {
-                        // Teori: blokir untuk semua workshop semester yang sama
-                        $teoriSlots[$sem][$hId][] = [$start, $end];
-                    } elseif (!empty($mk->kelas)) {
-                        // Workshop dengan kelas (A/B/C): blokir untuk workshop
-                        // kelas yang sama di semester yang sama
-                        $kelasSlots[$sem][$mk->kelas][$hId][] = [$start, $end];
-                    }
+                if ($mk->sks_teori > 0) {
+                    // Teori: blokir untuk semua workshop semester yang sama
+                    $teoriSlots[$sem][$hId][] = [$start, $end];
+                } elseif (!empty($mk->kelas)) {
+                    // Workshop dengan kelas (A/B/C): blokir untuk workshop
+                    // kelas yang sama di semester yang sama
+                    $kelasSlots[$sem][$mk->kelas][$hId][] = [$start, $end];
+                }
 
-                    // Dosen: blokir slot ini untuk semua mata kuliah dosen yang sama
-                    if ($mk->dosen_id) {
-                        $dosenSlots[$mk->dosen_id][$hId][] = [$start, $end];
-                    }
+                // Dosen: blokir slot ini untuk semua mata kuliah dosen yang sama
+                if ($mk->dosen_id) {
+                    $dosenSlots[$mk->dosen_id][$hId][] = [$start, $end];
                 }
             }
         }
-
-        return $schedule;
     }
+
+    return $schedule;
+}
 
     /**
      * Menghitung jumlah slot waktu (30 menit = 1 slot) dan jumlah pertemuan
@@ -514,8 +517,10 @@ class ABCAlgorithm
                 }
 
                 // Track kelas workshop (hanya kelas yang sama di semester yang sama)
-                if ($other['semester'] == $item['semester'] && !$other['is_teori']
-                    && !empty($itemKelas) && ($other['kelas'] ?? '') === $itemKelas) {
+                if (
+                    $other['semester'] == $item['semester'] && !$other['is_teori']
+                    && !empty($itemKelas) && ($other['kelas'] ?? '') === $itemKelas
+                ) {
                     $kelasSlots[$other['semester']][$itemKelas][$oHId][] = [$oStart, $oEnd];
                 }
 
@@ -582,7 +587,8 @@ class ABCAlgorithm
         // Konflik kelas Workshop: dua Workshop dari kelas yang sama (A/B/C) di semester yang sama
         // tidak boleh bersamaan karena mahasiswanya adalah orang yang sama.
         // Contoh: Workshop Web A dan Workshop Mobile A = mahasiswa kelas A yang sama.
-        if ($a['semester'] == $b['semester']
+        if (
+            $a['semester'] == $b['semester']
             && !$a['is_teori'] && !$b['is_teori']      // Keduanya Workshop
             && !empty($a['kelas']) && $a['kelas'] == $b['kelas'] // Kelas yang sama
         ) return true;
@@ -621,9 +627,11 @@ class ABCAlgorithm
                 if ($a['ruangan_id'] == $b['ruangan_id']) $violations++;
                 if (!empty($a['dosen_id']) && $a['dosen_id'] == $b['dosen_id']) $violations++;
                 if ($a['semester'] == $b['semester'] && ($a['is_teori'] || $b['is_teori'])) $violations++;
-                if ($a['semester'] == $b['semester']
+                if (
+                    $a['semester'] == $b['semester']
                     && !$a['is_teori'] && !$b['is_teori']
-                    && !empty($a['kelas']) && $a['kelas'] == $b['kelas']) $violations++;
+                    && !empty($a['kelas']) && $a['kelas'] == $b['kelas']
+                ) $violations++;
             }
         }
 
