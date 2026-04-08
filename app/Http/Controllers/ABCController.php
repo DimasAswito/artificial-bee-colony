@@ -98,7 +98,7 @@ class ABCController extends Controller
             'semester'          => $request->semester,
             'tahun_ajaran'      => $request->tahun_ajaran,
             'durasi_praktek'    => $request->durasi_4_sks,
-            'best_fitness_value' => $result['conflicts'], // Jumlah konflik murni (bukan nilai fitness internal)
+            'best_fitness_value' => $result['conflicts'],
             'jumlah_iterasi'    => $request->max_cycles,
             'status'            => 'Final',
         ]);

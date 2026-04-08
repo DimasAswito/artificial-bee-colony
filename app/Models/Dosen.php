@@ -26,6 +26,8 @@ class Dosen extends Model
         'nip',
         'email',
         'status',
+        'jenis_dosen',
+        
     ];
 
     /**

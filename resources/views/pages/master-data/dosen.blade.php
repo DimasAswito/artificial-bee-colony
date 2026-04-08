@@ -33,6 +33,18 @@
                                 <input type="email" x-model="form.email" placeholder="example@univ.ac.id"
                                     class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                             </div>
+
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Jenis Dosen (Opsional)
+                                </label>
+                                <select x-model="form.jenis_dosen"
+                                    class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
+                                    <option value="">Pilih Jenis Dosen</option>
+                                    <option value="Dosen Tetap">Dosen Tetap</option>
+                                    <option value="Dosen LB">Dosen LB</option>
+                                </select>
+                            </div>
                         </div>
 
                          <div class="mt-4">
@@ -104,6 +116,7 @@
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Nama</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">NIP</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Email</th>
+                                <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Jenis Dosen</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Status</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-end text-theme-sm dark:text-gray-400">Action</th>
                             </tr>
@@ -119,6 +132,9 @@
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-500 dark:text-gray-400" x-text="dosen.email || '-'"></div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="dosen.jenis_dosen || '-'"></div>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(dosen.status || 'Active')" x-text="dosen.status || 'Active'"></span>
@@ -302,6 +318,17 @@
                                 <input type="email" x-model="form.email"
                                     class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
                             </div>
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Jenis Dosen
+                                </label>
+                                <select x-model="form.jenis_dosen"
+                                    class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
+                                    <option value="">Pilih Jenis Dosen</option>
+                                    <option value="Dosen Tetap">Dosen Tetap</option>
+                                    <option value="Dosen LB">Dosen LB</option>
+                                </select>
+                            </div>
 
                             <!-- Status Toggle -->
                             <div>
@@ -363,6 +390,7 @@
                     name: '',
                     nip: '',
                     email: '',
+                    jenis_dosen: '',
                     status: 'Active'
                 },
                 isEditing: false,
@@ -401,7 +429,8 @@
                     return this.dosenData.filter(d => 
                         d.nama_dosen.toLowerCase().includes(this.search.toLowerCase()) || 
                         (d.nip && d.nip.includes(this.search)) ||
-                        (d.email && d.email.toLowerCase().includes(this.search.toLowerCase()))
+                        (d.email && d.email.toLowerCase().includes(this.search.toLowerCase())) ||
+                        (d.jenis_dosen && d.jenis_dosen.toLowerCase().includes(this.search.toLowerCase()))
                     );
                 },
 
@@ -467,6 +496,7 @@
                         name: dosen.nama_dosen,
                         nip: dosen.nip || '',
                         email: dosen.email || '',
+                        jenis_dosen: dosen.jenis_dosen || '',
                         status: dosen.status || 'Active'
                     };
                     this.isEditing = true;
@@ -479,7 +509,7 @@
                 },
 
                 resetForm() {
-                    this.form = { id: null, name: '', nip: '', email: '', status: 'Active' };
+                    this.form = { id: null, name: '', nip: '', email: '', jenis_dosen: '', status: 'Active' };
                     this.isEditing = false;
                 },
 
@@ -497,6 +527,7 @@
                         nama_dosen: this.form.name,
                         nip: this.form.nip,
                         email: this.form.email,
+                        jenis_dosen: this.form.jenis_dosen,
                         status: this.form.status,
                         _token: '{{ csrf_token() }}'
                     };

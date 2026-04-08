@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('nip')->nullable();
             $table->string('email')->nullable();
             $table->string('status')->default('Active')->nullable();
+            $table->string('jenis_dosen')->nullable();
             $table->timestamps();
         });
     }

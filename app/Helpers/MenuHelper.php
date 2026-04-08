@@ -57,6 +57,11 @@ class MenuHelper
             //     'path' => '/profile',
             // ],
             [
+                'icon' => 'user-profile',
+                'name' => 'Bobot Dosen',
+                'path' => '/bobot-dosen',
+            ],
+            [
                 'icon' => 'charts',
                 'name' => 'Log Pengguna',
                 // 'path' => '/profile',
@@ -99,7 +104,7 @@ class MenuHelper
                 'items' => self::getMainNavItems()
             ],
             [
-                'title' => 'Others',
+                'title' => 'Lainnya',
                 'items' => self::getOthersItems()
             ]
         ];

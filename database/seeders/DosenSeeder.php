@@ -19,6 +19,7 @@ class DosenSeeder extends Seeder
                 'nip' => '198203122005012002',
                 'email' => 'rpurbaningtyas@polije.ac.id',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen Tetap',
                 'created_at' => now(),
             ],
             [
@@ -26,6 +27,7 @@ class DosenSeeder extends Seeder
                 'nip' => '199203072023211018',
                 'email' => 'dhony_manggala@polije.ac.id',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen Tetap',
                 'created_at' => now(),
 
             ],
@@ -34,6 +36,7 @@ class DosenSeeder extends Seeder
                 'nip' => '199508242022031015',
                 'email' => 'adi_sucipto@polije.ac.id',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen Tetap',
                 'created_at' => now(),
             ],
             [
@@ -41,6 +44,7 @@ class DosenSeeder extends Seeder
                 'nip' => '199311242024062003',
                 'email' => 'sholihah.ayuwulan@polije.ac.id',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen Tetap',
                 'created_at' => now(),
             ],
             [
@@ -48,6 +52,7 @@ class DosenSeeder extends Seeder
                 'nip' => '199012072024061001',
                 'email' => 'rifqiaji_w@polije.ac.id',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen Tetap',
                 'created_at' => now(),
             ],
             [
@@ -62,26 +67,31 @@ class DosenSeeder extends Seeder
                 'nip' => '199107222024061004',
                 'email' => 'akas.setiawan@gmail.com',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen Tetap',
                 'created_at' => now(),
             ],
             [
                 'nama_dosen' => 'Agung Sutrisno, S.S, M.Hum',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen LB',
                 'created_at' => now(),
             ],
             [
                 'nama_dosen' => 'Iin Widayani, M.Pd',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen LB',
                 'created_at' => now(),
             ],
             [
                 'nama_dosen' => 'Drs. Asmunir, M.M',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen LB',
                 'created_at' => now(),
             ],
             [
                 'nama_dosen' => 'Aris Kuswanto, ST, M.PdI',
                 'status' => 'Active',
+                'jenis_dosen' => 'Dosen LB',
                 'created_at' => now(),
             ],
         ];
