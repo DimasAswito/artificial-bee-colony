@@ -111,8 +111,12 @@
                             </div>
                             <div>
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Tahun Ajaran <span class="text-red-500">*</span></label>
-                                <input type="text" x-model="form.tahun_ajaran" placeholder="Contoh: 2025/2026" required
-                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                                <select x-model="form.tahun_ajaran" required
+                                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                    @foreach($calendarInfo['tahun_ajaran_options'] as $option)
+                                        <option value="{{ $option }}">{{ $option }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div>
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Semester <span class="text-red-500">*</span></label>
@@ -338,11 +342,14 @@
                     { id: 'jam', label: 'Jam', count: @json($jam->count()) },
                 ],
                 
+                // Data Calendar dari Controller
+                calendarInfo: @json($calendarInfo),
+
                 // Form Config
                 form: {
                     judul: '',
-                    tahun_ajaran: '{{ date("Y") . "/" . (date("Y")+1) }}',
-                    semester: 'Ganjil',
+                    tahun_ajaran: @json($calendarInfo['default_tahun_ajaran']),
+                    semester: @json($calendarInfo['default_semester']),
                     population: 50,
                     max_cycles: 1000,
                     durasi_4_sks: 4 // Default 4 Jam

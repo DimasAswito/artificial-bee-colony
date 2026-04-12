@@ -35,14 +35,52 @@ class ABCController extends Controller
         $jam        = Jam::where('status', 'Active')->get();
         $history    = RiwayatPenjadwalan::latest()->take(5)->get();
 
+        $calendarInfo = $this->getAcademicCalendarData();
+
         return view('pages.artificial_bee_colony.generate', compact(
             'dosen',
             'mataKuliah',
             'ruangan',
             'hari',
             'jam',
-            'history'
+            'history',
+            'calendarInfo'
         ));
+    }
+
+    /**
+     * Mengambil default Tahun Ajaran, opsi dropdown, dan Semester berdasarkan tanggal sekarang.
+     * Logika:
+     * - Genap: Februari s/d Juli
+     * - Ganjil: Agustus s/d Januari
+     * @return array
+     */
+    private function getAcademicCalendarData(): array
+    {
+        $currentMonth = (int) date('n');
+        $currentYear = (int) date('Y');
+
+        if ($currentMonth >= 8 || $currentMonth == 1) { // Ganjil
+            $semester = 'Ganjil';
+        } else { // Genap
+            $semester = 'Genap';
+        }
+
+        // Secara default menggunakan tahun berjalan sebagai tahun awal (misal 2026 jadi 2026/2027)
+        $startYear = $currentYear;
+        $currentTahunAjar = $startYear . '/' . ($startYear + 1);
+
+        $tahunAjarOptions = [
+            ($startYear - 1) . '/' . $startYear,       // 1 Tahun Kebelakang
+            $currentTahunAjar,                         // Tahun Sekarang (Default)
+            ($startYear + 1) . '/' . ($startYear + 2), // 1 Tahun Kedepan
+        ];
+
+        return [
+            'default_semester' => $semester,
+            'default_tahun_ajaran' => $currentTahunAjar,
+            'tahun_ajaran_options' => $tahunAjarOptions,
+        ];
     }
 
     // =========================================================================
