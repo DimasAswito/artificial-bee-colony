@@ -84,7 +84,7 @@
                                         <div class="text-sm text-gray-500 dark:text-gray-400" x-text="dosen.jenis_dosen || '-'"></div>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="dosen.bobot ?? '-'"></div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="dosen.bobot + ' sks' ?? '-'"></div>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(dosen.status || 'Active')" x-text="dosen.status || 'Active'"></span>

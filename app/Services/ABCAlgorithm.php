@@ -240,15 +240,47 @@ protected function generateRandomSchedule(): array
 
         $usedHariIds = [];
         for ($i = 0; $i < $occurrences; $i++) {
+            // ─────────────────────────────────────────────────────────────────
+            // FALLBACK BERLAPIS — pastikan SEMUA occurrence selalu masuk jadwal.
+            //
+            // Jika placement gagal (null), constraint dilonggarkan bertahap:
+            //   Level 1: Semua constraint aktif (kondisi ideal).
+            //   Level 2: Boleh pakai hari yang sama dengan sesi sebelumnya.
+            //   Level 3: Lepas constraint kelas & dosen, hindari slot teori saja.
+            //   Level 4: Abaikan semua constraint — taruh di slot waktu manapun.
+            //
+            // Konflik yang ditimbulkan Level 2-4 diselesaikan oleh ABC iterasinya.
+            // ─────────────────────────────────────────────────────────────────
+
+            // Level 1 — ideal
             $assignment = $this->getRandomAssignment(
-                $mk,
-                $mk->dosen_id,
-                $totalDurationSlots,
-                $usedHariIds,
-                $teoriSlots,
-                $kelasSlots,
-                $dosenSlots
+                $mk, $mk->dosen_id, $totalDurationSlots,
+                $usedHariIds, $teoriSlots, $kelasSlots, $dosenSlots
             );
+
+            // Level 2 — boleh hari yang sama
+            if ($assignment === null) {
+                $assignment = $this->getRandomAssignment(
+                    $mk, $mk->dosen_id, $totalDurationSlots,
+                    [], $teoriSlots, $kelasSlots, $dosenSlots
+                );
+            }
+
+            // Level 3 — lepas kelas & dosen, tetap hindari teori
+            if ($assignment === null) {
+                $assignment = $this->getRandomAssignment(
+                    $mk, $mk->dosen_id, $totalDurationSlots,
+                    [], $teoriSlots, [], []
+                );
+            }
+
+            // Level 4 — abaikan semua constraint; hanya syarat blok waktu valid
+            if ($assignment === null) {
+                $assignment = $this->getRandomAssignment(
+                    $mk, $mk->dosen_id, $totalDurationSlots,
+                    [], [], [], []
+                );
+            }
 
             if ($assignment) {
                 $schedule[]    = $assignment;
@@ -292,29 +324,33 @@ protected function generateRandomSchedule(): array
      */
     protected function calculateDurationSlots($mk): array
     {
-        $teoriSlots = $mk->sks_teori * 2; // 1 SKS = 2 slot (30 menit/slot)
+        // 1 SKS Teori  = 1 jam tatap muka = 2 slot (1 slot = 30 menit)
+        // 1 SKS Praktek = 2 jam tatap muka = 4 slot
+        $teoriSlots = $mk->sks_teori * 2; // SKS × 2 slot/SKS
 
         if ($mk->sks_praktek == 0) {
-            // Murni Teori: selesai, 1 pertemuan
+            // Murni Teori: 1 pertemuan
             return [$teoriSlots, 1];
         }
 
-        $defaultPraktekJam = $mk->sks_praktek * 2;
+        // $praktekSlots = SKS Praktek × 2 jam/SKS × 2 slot/jam = SKS × 4 slot
+        $defaultPraktekSlots = $mk->sks_praktek * 4;
 
         if ($mk->sks_teori > 0) {
-            // Campuran (Teori + Praktek): Gabung jadi 1 sesi, kebal override
-            $praktekSlots = $defaultPraktekJam * 2; // Convert jam -> slot
-            return [$teoriSlots + $praktekSlots, 1];
+            // Campuran (Teori + Praktek): Gabung jadi 1 sesi, tidak kena override
+            return [$teoriSlots + $defaultPraktekSlots, 1];
         }
 
         // Murni Praktek: Terapkan override max jam jika disetting
         $maxJamPraktek = (float) $this->durasi4Sks;
         if ($maxJamPraktek > 0) {
-            $occurrences  = 2; // Dibagi 2 pertemuan
-            $slotsPerSesi = $maxJamPraktek * 2; // Convert jam -> slot
+            $occurrences  = 2;                  // Dibagi 2 pertemuan
+            $slotsPerSesi = $maxJamPraktek * 2; // Jam → slot (1 jam = 2 slot)
         } else {
-            $occurrences  = ($defaultPraktekJam > 4) ? 2 : 1;
-            $slotsPerSesi = ($defaultPraktekJam / $occurrences) * 2;
+            // Fallback otomatis: jika total > 4 jam, bagi 2 pertemuan
+            $totalJam    = $mk->sks_praktek * 2; // SKS × 2 jam/SKS
+            $occurrences = ($totalJam > 4) ? 2 : 1;
+            $slotsPerSesi = ($totalJam / $occurrences) * 2;
         }
 
         return [(int) $slotsPerSesi, $occurrences];
