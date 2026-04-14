@@ -331,6 +331,7 @@
                 ruangan: @json($ruangan),
                 hari: @json($hari),
                 jam: @json($jam),
+                teknisi: @json($teknisi),
                 
                 // Tabs Config
                 activeTab: 'dosen',
@@ -340,6 +341,7 @@
                     { id: 'ruangan', label: 'Ruangan', count: @json($ruangan->count()) },
                     { id: 'hari', label: 'Hari', count: @json($hari->count()) },
                     { id: 'jam', label: 'Jam', count: @json($jam->count()) },
+                    { id: 'teknisi', label: 'Teknisi', count: @json($teknisi->count()) },
                 ],
                 
                 // Data Calendar dari Controller
@@ -380,6 +382,7 @@
                         case 'ruangan': return "{{ route('ruangan.index') }}";
                         case 'hari': return "{{ route('hari.index') }}";
                         case 'jam': return "{{ route('jam.index') }}";
+                        case 'teknisi': return "{{ route('teknisi.index') }}";
                         default: return "#";
                     }
                 },
@@ -411,6 +414,9 @@
                         case 'jam': return [
                             { key: 'jam_mulai', label: 'Mulai' },
                             { key: 'jam_selesai', label: 'Selesai' }
+                        ];
+                        case 'teknisi': return [
+                            { key: 'nama', label: 'Nama Teknisi' },
                         ];
                         default: return [];
                     }

@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Jam;
-use App\Models\Hari;
-use App\Models\Dosen;
-use App\Models\Ruangan;
-use App\Models\MataKuliah;
-use App\Models\JadwalKuliah;
-use Illuminate\Http\Request;
-use App\Services\ABCAlgorithm;
-use App\Models\RiwayatPenjadwalan;
-use Illuminate\Support\Facades\Auth;
 use App\Exports\JadwalExport;
+use App\Models\Dosen;
+use App\Models\Hari;
+use App\Models\JadwalKuliah;
+use App\Models\Jam;
+use App\Models\MataKuliah;
+use App\Models\RiwayatPenjadwalan;
+use App\Models\Ruangan;
+use App\Models\Teknisi;
+use App\Services\ABCAlgorithm;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ABCController extends Controller
@@ -33,6 +34,7 @@ class ABCController extends Controller
         $ruangan    = Ruangan::where('status', 'Active')->get();
         $hari       = Hari::where('status', 'Active')->get();
         $jam        = Jam::where('status', 'Active')->get();
+        $teknisi    = Teknisi::where('status', 'Active')->get();
         $history    = RiwayatPenjadwalan::latest()->take(5)->get();
 
         $calendarInfo = $this->getAcademicCalendarData();
@@ -43,6 +45,7 @@ class ABCController extends Controller
             'ruangan',
             'hari',
             'jam',
+            'teknisi',
             'history',
             'calendarInfo'
         ));
