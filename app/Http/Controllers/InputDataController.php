@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Jam;
-use App\Models\Hari;
-use App\Models\Log;
 use App\Models\Dosen;
-use App\Models\Ruangan;
+use App\Models\Hari;
+use App\Models\Jam;
+use App\Models\Log;
 use App\Models\MataKuliah;
+use App\Models\Ruangan;
+use App\Models\Teknisi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -397,5 +398,73 @@ class InputDataController extends Controller
   public function showRuangan($id)
   {
     return response()->json(Ruangan::findOrFail($id));
+  }
+
+  public function indexTeknisi()
+  {
+    return view('pages.master-data.teknisi');
+  }
+
+  public function getTeknisiData()
+  {
+    $teknisi = Teknisi::orderBy('id', 'desc')->get();
+
+    $formattedData = $teknisi->map(function ($t) {
+      return [
+        'id' => $t->id,
+        'nama' => $t->nama,
+        'status' => $t->status
+      ];
+    });
+
+    return response()->json($formattedData);
+  }
+
+  public function storeTeknisi(Request $request)
+  {
+    $request->validate([
+      'nama' => 'required|string|max:255',
+      'status' => 'nullable|in:Active,Inactive'
+    ]);
+
+    $data = $request->all();
+    $data['status'] = $data['status'] ?? 'Active';
+
+    $teknisi = Teknisi::create($data);
+    $this->logActivity('Data Teknisi', 'Menambah Data Teknisi : ' . $teknisi->nama);
+    return response()->json(['message' => 'Teknisi created successfully', 'data' => $teknisi], 201);
+  }
+
+  public function updateTeknisi(Request $request, $id)
+  {
+    $request->validate([
+      'nama' => 'required|string|max:255',
+      'status' => 'nullable|in:Active,Inactive'
+    ]);
+
+    $teknisi = Teknisi::findOrFail($id);
+    $teknisi->update($request->all());
+    $this->logActivity('Data Teknisi', 'Mengubah Data Teknisi : ' . $teknisi->nama);
+    return response()->json(['message' => 'Teknisi updated successfully', 'data' => $teknisi]);
+  }
+
+  public function destroyTeknisi($id)
+  {
+    $teknisi = Teknisi::findOrFail($id);
+
+    if (method_exists($teknisi, 'jadwalKuliahs') && $teknisi->jadwalKuliahs()->exists()) {
+      return response()->json([
+        'message' => 'Teknisi ini sedang digunakan dalam Riwayat Jadwal. Silahkan ubah status menjadi Inactive, atau hapus riwayat jadwal bersangkutan.'
+      ], 400);
+    }
+
+    $namaTeknisi = $teknisi->nama;
+    $teknisi->delete();
+    $this->logActivity('Data Teknisi', 'Menghapus Data Teknisi : ' . $namaTeknisi);
+    return response()->json(['message' => 'Teknisi deleted successfully']);
+  }
+  public function showTeknisi($id)
+  {
+    return response()->json(Teknisi::findOrFail($id));
   }
 }

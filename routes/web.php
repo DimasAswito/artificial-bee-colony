@@ -71,6 +71,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/ruangan/{id}', 'showRuangan')->name('ruangan.show');
         Route::put('/ruangan/{id}', 'updateRuangan')->name('ruangan.update');
         Route::delete('/ruangan/{id}', 'destroyRuangan')->name('ruangan.destroy');
+        
+        // Teknisi
+        Route::get('/teknisi/data', 'getTeknisiData')->name('teknisi.data');
+        Route::get('/teknisi', 'indexTeknisi')->name('teknisi.index');
+        Route::post('/teknisi', 'storeTeknisi')->name('teknisi.store');
+        Route::get('/teknisi/{id}', 'showTeknisi')->name('teknisi.show');
+        Route::put('/teknisi/{id}', 'updateTeknisi')->name('teknisi.update');
+        Route::delete('/teknisi/{id}', 'destroyTeknisi')->name('teknisi.destroy');
     });
 
     // calender pages

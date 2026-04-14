@@ -75,6 +75,7 @@
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Mata Kuliah</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">SKS</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Dosen Pengampu</th>
+                                <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Teknisi</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Ruangan</th>
                             </tr>
                         </thead>
@@ -98,6 +99,7 @@
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $jadwal->mataKuliah->sks ?? '-' }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $jadwal->dosen->nama_dosen ?? 'Belum Ada Dosen' }}</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $jadwal->teknisi->nama ?? '-' }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm">
                                         <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                                             {{ $jadwal->ruangan->nama_ruangan ?? '-' }}
@@ -106,7 +108,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    <td colspan="8" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                         Tidak ada data jadwal.
                                     </td>
                                 </tr>

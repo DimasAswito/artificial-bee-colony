@@ -21,6 +21,7 @@ class MenuHelper
                     ['name' => 'Data Ruangan', 'path' => '/ruangan'],
                     ['name' => 'Data Hari', 'path' => '/hari'],
                     ['name' => 'Data Jam', 'path' => '/jam'],
+                    ['name' => 'Data Teknisi', 'path' => '/teknisi'],
                 ],
             ],
             [

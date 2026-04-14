@@ -18,6 +18,7 @@ class JadwalKuliah extends Model
     'ruangan_id',
     'hari_id',
     'jam_id',
+    'teknisi_id',
   ];
 
   public function riwayatPenjadwalan()
@@ -48,5 +49,10 @@ class JadwalKuliah extends Model
   public function jam()
   {
     return $this->belongsTo(Jam::class);
+  }
+
+  public function teknisi()
+  {
+    return $this->belongsTo(Teknisi::class);
   }
 }

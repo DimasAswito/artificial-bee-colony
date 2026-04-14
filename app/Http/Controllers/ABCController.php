@@ -150,6 +150,7 @@ class ABCController extends Controller
                 'ruangan_id'             => $item['ruangan_id'],
                 'hari_id'                => $item['hari_id'],
                 'jam_id'                 => $item['jam_id'],
+                'teknisi_id'             => $item['teknisi_id'] ?? null,
             ]);
         }
 
@@ -187,6 +188,7 @@ class ABCController extends Controller
             'jadwalKuliahs.ruangan',
             'jadwalKuliahs.hari',
             'jadwalKuliahs.jam',
+            'jadwalKuliahs.teknisi',
         ])->findOrFail($id);
 
         // Hitung durasi riil setiap mata kuliah berdasarkan konfigurasi SKS & history
@@ -224,6 +226,7 @@ class ABCController extends Controller
                 $isConflict = false;
                 if ($a->ruangan_id == $b->ruangan_id) $isConflict = true;
                 if ($a->dosen_id && $a->dosen_id == $b->dosen_id) $isConflict = true;
+                if (!empty($a->teknisi_id) && $a->teknisi_id == $b->teknisi_id) $isConflict = true;
                 if ($aSemester == $bSemester && ($aIsTeori || $bIsTeori)) $isConflict = true;
                 if ($aSemester == $bSemester && !$aIsTeori && !$bIsTeori && !empty($aKelas) && $aKelas == $bKelas) $isConflict = true;
 
@@ -272,6 +275,7 @@ class ABCController extends Controller
             'jadwalKuliahs.ruangan',
             'jadwalKuliahs.hari',
             'jadwalKuliahs.jam',
+            'jadwalKuliahs.teknisi',
         ])->findOrFail($id);
 
         $haris   = Hari::orderBy('id')->where('status', 'Active')->get();
@@ -422,11 +426,12 @@ class ABCController extends Controller
      */
     private function checkCapacity(string $semesterType, float $durasi4Sks): array
     {
-        $activeRooms = Ruangan::where('status', 'Active')->count();
-        $haris       = Hari::where('status', 'Active')->get();
-        $jams        = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->values();
-        $activeDays  = $haris->count();
-        $activeJams  = $jams->count();
+        $activeRooms   = Ruangan::where('status', 'Active')->count();
+        $activeTeknisi = \App\Models\Teknisi::where('status', 'Active')->count();
+        $haris         = Hari::where('status', 'Active')->get();
+        $jams          = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->values();
+        $activeDays    = $haris->count();
+        $activeJams    = $jams->count();
 
         if ($activeRooms == 0 || $activeDays == 0 || $activeJams == 0) {
             return [
@@ -615,17 +620,26 @@ class ABCController extends Controller
         // ruang untuk bergerak.
         // ─────────────────────────────────────────────────────────────────
         if ($totalWorkshopOccurrences > 0 && $totalAvailableBlocks > 0) {
-            $roomBlockCapacity = $totalAvailableBlocks * $activeRooms;
+            if ($activeTeknisi == 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Belum ada teknisi aktif.',
+                    'details' => 'Mata kuliah workshop membutuhkan minimal 1 teknisi aktif. Silakan tambahkan dan aktifkan teknisi terlebih dahulu.',
+                ];
+            }
+            
+            $effectiveRoomsForWorkshop = min($activeRooms, $activeTeknisi);
+            $roomBlockCapacity = $totalAvailableBlocks * $effectiveRoomsForWorkshop;
 
             if ($totalWorkshopOccurrences > $roomBlockCapacity) {
                 // Hard block: secara matematis tidak mungkin
                 return [
                     'success' => false,
-                    'message' => 'Ruangan tidak cukup untuk semua sesi workshop.',
+                    'message' => 'Ruangan/Teknisi tidak cukup untuk semua sesi workshop.',
                     'details' => 'Jumlah sesi workshop yang harus dijadwalkan (' . $totalWorkshopOccurrences . ' sesi) '
-                        . 'melebihi total tempat yang tersedia (' . $roomBlockCapacity . ' tempat). '
+                        . 'melebihi total tempat/teknisi yang tersedia (' . $roomBlockCapacity . ' slot waktu). '
                         . 'Ini berarti sebagian mata kuliah pasti tidak bisa mendapat jadwal. '
-                        . 'Saran: nonaktifkan beberapa mata kuliah teori, atau tambah hari kuliah.',
+                        . 'Saran: nonaktifkan beberapa mata kuliah praktek, atau tambah teknisi/hari kuliah.',
                 ];
             }
 

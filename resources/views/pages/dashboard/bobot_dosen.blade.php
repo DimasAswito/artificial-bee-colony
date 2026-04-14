@@ -32,6 +32,28 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Card 2: Riwayat Dropdown -->
+            <div class="lg:col-span-2">
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 h-full flex flex-col justify-center">
+                    <div class="flex flex-col sm:flex-row gap-4 items-end">
+                        <div class="flex-1 w-full">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Pilih Riwayat Penjadwalan
+                            </label>
+                            <select x-model="selectedRiwayat" class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                <option value="">Pilih Data</option>
+                                @foreach($riwayats as $riwayat)
+                                    <option value="{{ $riwayat->id }}">{{ $riwayat->judul }} - {{ $riwayat->tahun_ajaran }} ({{ $riwayat->semester }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button @click="fetchDosen" class="whitespace-nowrap rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 focus:ring-4 focus:ring-brand-500/20">
+                            Lihat Bobot Dosen
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Card 2: Data Dosen Table -->
@@ -49,14 +71,6 @@
                                 <input type="text" x-model="search" placeholder="Search..."
                                     class="h-[42px] rounded-lg border px-4 text-sm">
                             </div>
-
-                            <!-- Filter Semester -->
-                            <select x-model="semesterFilter" @change="fetchDosen"
-                                class="h-[42px] rounded-lg border px-3 text-sm">
-                                <option value="">Semua</option>
-                                <option value="ganjil">Ganjil</option>
-                                <option value="genap">Genap</option>
-                            </select>
                         </div>
                     </form>
                 </div>
@@ -88,6 +102,13 @@
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(dosen.status || 'Active')" x-text="dosen.status || 'Active'"></span>
+                                    </td>
+                                </tr>
+                            </template>
+                            <template x-if="paginatedData.length === 0">
+                                <tr>
+                                    <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                        <span x-text="selectedRiwayat && !isLoading ? 'Data tidak ditemukan.' : 'Silakan pilih jadwal dari dropdown dan klik Lihat Bobot Dosen.'"></span>
                                     </td>
                                 </tr>
                             </template>
@@ -140,7 +161,7 @@
                 currentPage: 1,
                 editModalOpen: false,
                 isLoading: false,
-                semesterFilter: '',
+                selectedRiwayat: '',
                 search: '',
                 form: {
                     id: null,
@@ -152,7 +173,6 @@
                 isEditing: false,
 
                 init() {
-                    this.fetchDosen();
                     this.fetchLogs();
                 },
 
@@ -167,14 +187,13 @@
                 },
 
                 async fetchDosen() {
+                    if (!this.selectedRiwayat) {
+                        Swal.fire('Perhatian', 'Pilih riwayat penjadwalan terlebih dahulu dari dropdown', 'warning');
+                        return;
+                    }
                     this.isLoading = true;
                     try {
-                        let url = '{{ route('bobot-dosen.data') }}';
-
-                        // kirim parameter
-                        if (this.semesterFilter) {
-                            url += '?semester=' + this.semesterFilter;
-                        }
+                        let url = '{{ route('bobot-dosen.data') }}?riwayat_id=' + this.selectedRiwayat;
 
                         const response = await fetch(url);
                         const data = await response.json();

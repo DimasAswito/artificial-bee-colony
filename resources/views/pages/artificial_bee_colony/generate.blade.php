@@ -134,7 +134,7 @@
                             
                             <div class="text-center w-full">
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Durasi Max Pertemuan Praktek <span class="text-error-500">*</span>
+                                    Durasi Pertemuan Praktek <span class="text-error-500">*</span>
                                 </label>
                                 <select x-model="form.durasi_4_sks" required
                                     class="w-full max-w-sm mx-auto rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">

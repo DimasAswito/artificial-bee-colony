@@ -5,44 +5,48 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+use App\Models\RiwayatPenjadwalan;
+
 class BebanDosenController extends Controller
 {
 
     public function index()
     {
-        return view('pages.dashboard.bobot_dosen');
+        $riwayats = RiwayatPenjadwalan::latest()->get();
+        return view('pages.dashboard.bobot_dosen', compact('riwayats'));
     }
 
     public function data(Request $request)
     {
-        $filterSemester = $request->get('semester');
-
-        $condition = "1=1"; // default semua
-
-        if ($filterSemester == 'ganjil') {
-            $condition = "mk.semester IN (1,3,5)";
-        } elseif ($filterSemester == 'genap') {
-            $condition = "mk.semester IN (2,4,6)";
+        $riwayatId = $request->get('riwayat_id');
+        
+        if (empty($riwayatId)) {
+            return response()->json([]);
         }
 
         $dosens = DB::table('dosen')
-            ->leftJoin('mata_kuliah as mk', 'dosen.id', '=', 'mk.dosen_id')
+            ->leftJoinSub(
+                DB::table('jadwal_kuliah')
+                    ->select('dosen_id', 'mata_kuliah_id')
+                    ->where('riwayat_penjadwalan_id', $riwayatId)
+                    ->distinct(),
+                'distinct_jk',
+                function ($join) {
+                    $join->on('dosen.id', '=', 'distinct_jk.dosen_id');
+                }
+            )
+            ->leftJoin('mata_kuliah as mk', 'distinct_jk.mata_kuliah_id', '=', 'mk.id')
             ->select(
                 'dosen.id',
                 'dosen.nama_dosen',
                 'dosen.jenis_dosen',
                 'dosen.status',
                 DB::raw("
-                COALESCE(SUM(
-                    CASE 
-                        WHEN $condition 
-                        THEN (mk.sks_teori + mk.sks_praktek)
-                        ELSE 0
-                    END
-                ), 0) as bobot
+                COALESCE(SUM(mk.sks_teori + mk.sks_praktek), 0) as bobot
             ")
             )
             ->groupBy('dosen.id', 'dosen.nama_dosen', 'dosen.jenis_dosen', 'dosen.status')
+            ->orderBy('bobot', 'desc')
             ->get();
 
         return response()->json($dosens);
