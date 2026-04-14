@@ -147,7 +147,7 @@
                                     <option value="3.5">3.5 Jam</option>
                                     <option value="4" selected>4 Jam</option>
                                 </select>
-                                <p class="mt-2 text-xs text-gray-500 max-w-sm mx-auto">Angka ini akan memecah jumlah sesi MK Praktek jika total jamnya melebihi batas ini.</p>
+                                <p class="mt-2 text-xs text-gray-500 max-w-sm mx-auto">Angka diatas akan digunakan untuk waktu di setiap pertemuan mata kuliah workshop/praktik.</p>
                             </div>
 
                             <div class="w-full max-w-sm mx-auto mt-6">
