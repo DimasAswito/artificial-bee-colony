@@ -371,6 +371,7 @@
                         case 'ruangan': return this.ruangan;
                         case 'hari': return this.hari;
                         case 'jam': return this.jam;
+                        case 'teknisi': return this.teknisi;
                         default: return [];
                     }
                 },
