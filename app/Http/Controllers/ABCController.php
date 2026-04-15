@@ -12,6 +12,7 @@ use App\Models\RiwayatPenjadwalan;
 use App\Models\Ruangan;
 use App\Models\Teknisi;
 use App\Services\ABCAlgorithm;
+use App\Services\TeknisiAssigner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
@@ -131,6 +132,11 @@ class ABCController extends Controller
             $request->durasi_4_sks
         );
         $result = $algorithm->run();
+
+        // Langkah 2b: Assign teknisi ke sesi workshop (post-processing, di luar ABC)
+        // Dilakukan SETELAH algoritma selesai agar tidak menambah beban komputasi ABC.
+        $assigner = new TeknisiAssigner();
+        $result['schedule'] = $assigner->assign($result['schedule']);
 
         // Langkah 3: Simpan riwayat ke tabel riwayat_penjadwalan
         $history = RiwayatPenjadwalan::create([
