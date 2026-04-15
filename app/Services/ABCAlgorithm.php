@@ -77,6 +77,7 @@ class ABCAlgorithm
             return $mulai >= Carbon::parse('12:00') && $selesai <= Carbon::parse('13:00');
         });
         
+        $this->data['teknisi'] = \App\Models\Teknisi::where('status', 'Active')->get();
     }
 
     // =========================================================================
@@ -235,6 +236,7 @@ protected function generateRandomSchedule(): array
     // Tracker slot Dosen: [dosen_id][hari_id] => [[start, end], ...]
     // Mencegah 1 dosen mengajar 2 kelas berbeda di waktu yang sama (lintas semester)
     $dosenSlots = [];
+    $teknisiSlots = []; // Tracker slot Teknisi per hari
 
     foreach ($sorted as $mk) {
         [$totalDurationSlots, $occurrences] = $this->calculateDurationSlots($mk);
@@ -256,14 +258,14 @@ protected function generateRandomSchedule(): array
             // Level 1 — ideal
             $assignment = $this->getRandomAssignment(
                 $mk, $mk->dosen_id, $totalDurationSlots,
-                $usedHariIds, $teoriSlots, $kelasSlots, $dosenSlots
+                $usedHariIds, $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots
             );
 
             // Level 2 — boleh hari yang sama
             if ($assignment === null) {
                 $assignment = $this->getRandomAssignment(
                     $mk, $mk->dosen_id, $totalDurationSlots,
-                    [], $teoriSlots, $kelasSlots, $dosenSlots
+                    [], $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots
                 );
             }
 
@@ -271,7 +273,7 @@ protected function generateRandomSchedule(): array
             if ($assignment === null) {
                 $assignment = $this->getRandomAssignment(
                     $mk, $mk->dosen_id, $totalDurationSlots,
-                    [], $teoriSlots, [], []
+                    [], $teoriSlots, [], [], []
                 );
             }
 
@@ -279,7 +281,7 @@ protected function generateRandomSchedule(): array
             if ($assignment === null) {
                 $assignment = $this->getRandomAssignment(
                     $mk, $mk->dosen_id, $totalDurationSlots,
-                    [], [], [], []
+                    [], [], [], [], []
                 );
             }
 
@@ -304,6 +306,11 @@ protected function generateRandomSchedule(): array
                 // Dosen: blokir slot ini untuk semua mata kuliah dosen yang sama
                 if ($mk->dosen_id) {
                     $dosenSlots[$mk->dosen_id][$hId][] = [$start, $end];
+                }
+                
+                // Teknisi: blokir slot ini untuk semua teknisi yang sama
+                if (!empty($assignment['teknisi_id'])) {
+                    $teknisiSlots[$assignment['teknisi_id']][$hId][] = [$start, $end];
                 }
             }
         }
@@ -365,7 +372,7 @@ protected function generateRandomSchedule(): array
      *   format: [semester][hari_id] => [[start, end], ...]. Digunakan saat inisialisasi
      *   untuk menghindari konflik semester sejak awal.
      */
-    protected function getRandomAssignment($mk, $dosenId, int $durationSlots, array $excludedHariIds = [], array $teoriSlotsPerSemester = [], array $kelasSlots = [], array $dosenSlots = []): ?array
+    protected function getRandomAssignment($mk, $dosenId, int $durationSlots, array $excludedHariIds = [], array $teoriSlotsPerSemester = [], array $kelasSlots = [], array $dosenSlots = [], array $teknisiSlots = []): ?array
     {
         $availableDays = $this->data['hari']->whereNotIn('id', $excludedHariIds);
 
@@ -413,6 +420,26 @@ protected function generateRandomSchedule(): array
                 }));
             }
 
+            // Filter 4: Buang slot yang tidak punya Teknisi free (untuk workshop)
+            $isWorkshopOnly = ($mk->sks_praktek > 0 && $mk->sks_teori == 0);
+            if ($isWorkshopOnly && $this->data['teknisi']->count() > 0) {
+                $validJamIndices = array_values(array_filter($validJamIndices, function ($start) use ($durationSlots, $teknisiSlots, $hari) {
+                    $end = $start + $durationSlots;
+                    $freeTeknisiCount = $this->data['teknisi']->count();
+                    foreach ($this->data['teknisi'] as $t) {
+                        if (!empty($teknisiSlots[$t->id][$hari->id])) {
+                            foreach ($teknisiSlots[$t->id][$hari->id] as [$tStart, $tEnd]) {
+                                if ($start < $tEnd && $end > $tStart) {
+                                    $freeTeknisiCount--;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    return $freeTeknisiCount > 0;
+                }));
+            }
+
             if (empty($validJamIndices)) {
                 continue;
             }
@@ -427,6 +454,31 @@ protected function generateRandomSchedule(): array
                 ? $this->data['teori_ruangans']->random()
                 : $this->data['ruangan']->random();
 
+            $teknisiId = null;
+            if ($isWorkshopOnly && $this->data['teknisi']->count() > 0) {
+                $availableTeknisis = [];
+                $endIdx = $startIdx + $durationSlots;
+                foreach ($this->data['teknisi'] as $t) {
+                    $conflict = false;
+                    if (!empty($teknisiSlots[$t->id][$hari->id])) {
+                        foreach ($teknisiSlots[$t->id][$hari->id] as [$tStart, $tEnd]) {
+                            if ($startIdx < $tEnd && $endIdx > $tStart) {
+                                $conflict = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!$conflict) {
+                        $availableTeknisis[] = $t->id;
+                    }
+                }
+                if (!empty($availableTeknisis)) {
+                    $teknisiId = $availableTeknisis[array_rand($availableTeknisis)];
+                } else {
+                    $teknisiId = $this->data['teknisi']->random()->id;
+                }
+            }
+
             return [
                 'mata_kuliah_id' => $mk->id,
                 'dosen_id'       => $dosenId,
@@ -438,7 +490,7 @@ protected function generateRandomSchedule(): array
                 'semester'       => $mk->semester,
                 'is_teori'       => $mk->sks_teori > 0,
                 'kelas'          => $mk->kelas ?? '', // Kelas mahasiswa: 'A', 'B', 'C', atau '' untuk teori
-                'teknisi_id'     => null, // Di-assign oleh TeknisiAssigner setelah ABC selesai
+                'teknisi_id'     => $teknisiId,
             ];
         }
 
@@ -540,6 +592,7 @@ protected function generateRandomSchedule(): array
             $teoriSlots = [];
             $kelasSlots = [];
             $dosenSlots = [];
+            $teknisiSlots = [];
             $itemKelas  = $item['kelas'] ?? '';
 
             foreach ($scheduleData as $idx => $other) {
@@ -566,19 +619,29 @@ protected function generateRandomSchedule(): array
                 if (!empty($other['dosen_id']) && $other['dosen_id'] == $item['dosen_id']) {
                     $dosenSlots[$item['dosen_id']][$oHId][] = [$oStart, $oEnd];
                 }
+                
+                // Track teknisi
+                if (!empty($other['teknisi_id'])) {
+                    $teknisiSlots[$other['teknisi_id']][$oHId][] = [$oStart, $oEnd];
+                }
             }
 
-            $newAssignment = $this->getRandomAssignment($mkMutate, $item['dosen_id'], $item['duration_slots'], $excludedHariIds, $teoriSlots, $kelasSlots, $dosenSlots);
+            $newAssignment = $this->getRandomAssignment($mkMutate, $item['dosen_id'], $item['duration_slots'], $excludedHariIds, $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots);
             if ($newAssignment) {
-                $item['hari_id']   = $newAssignment['hari_id'];
-                $item['jam_id']    = $newAssignment['jam_id'];
-                $item['jam_index'] = $newAssignment['jam_index'];
+                $item['hari_id']    = $newAssignment['hari_id'];
+                $item['jam_id']     = $newAssignment['jam_id'];
+                $item['jam_index']  = $newAssignment['jam_index'];
+                $item['teknisi_id'] = $newAssignment['teknisi_id'];
             }
         } else {
             // Ganti Ruangan (30% ketika ada konflik, 50% ketika tidak ada)
             $item['ruangan_id'] = ($mkMutate && $mkMutate->sks_teori > 0)
                 ? $this->data['teori_ruangans']->random()->id
                 : $this->data['ruangan']->random()->id;
+                
+            if (!$item['is_teori'] && $this->data['teknisi']->count() > 0) {
+                $item['teknisi_id'] = $this->data['teknisi']->random()->id;
+            }
         }
 
         $scheduleData[$mutateIdx] = $item;
@@ -617,6 +680,9 @@ protected function generateRandomSchedule(): array
 
         // Konflik dosen: dosen yang sama mengajar di waktu bersamaan
         if (!empty($a['dosen_id']) && $a['dosen_id'] == $b['dosen_id']) return true;
+
+        // Konflik teknisi: teknisi yang sama menangani 2 workshop di waktu bersamaan
+        if (!empty($a['teknisi_id']) && $a['teknisi_id'] == $b['teknisi_id']) return true;
 
         // Konflik angkatan-Teori: kelas Teori untuk semester yang sama tidak boleh bersamaan
         // karena seluruh angkatan harus hadir (Workshop/Praktek boleh paralel karena kelas dibagi)
@@ -664,6 +730,7 @@ protected function generateRandomSchedule(): array
                 // Hitung setiap tipe pelanggaran secara terpisah agar bobot penalti akurat
                 if ($a['ruangan_id'] == $b['ruangan_id']) $violations++;
                 if (!empty($a['dosen_id']) && $a['dosen_id'] == $b['dosen_id']) $violations++;
+                if (!empty($a['teknisi_id']) && $a['teknisi_id'] == $b['teknisi_id']) $violations++;
                 if ($a['semester'] == $b['semester'] && ($a['is_teori'] || $b['is_teori'])) $violations++;
                 if (
                     $a['semester'] == $b['semester']
