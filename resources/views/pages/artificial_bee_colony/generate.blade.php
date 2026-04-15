@@ -357,6 +357,9 @@
                     durasi_4_sks: 4 // Default 4 Jam
                 },
                 isGenerating: false,
+                isPolling: false,
+                pollingHistoryId: null,
+                pollingInterval: null,
                 isModalOpen: false,
                 
                 // Table State
@@ -475,16 +478,15 @@
                 async submitGenerate() {
                     // Manual Native Validation Trigger for hidden modal inputs
                     if (!this.$refs.formEl.checkValidity()) {
-                        // If it's the modal inputs causing error, pop it open so tooltips can show
                         if (!this.$refs.popInput.validity.valid || !this.$refs.cycleInput.validity.valid) {
                             this.isModalOpen = true;
                         }
-                        
                         this.$nextTick(() => {
-                            this.$refs.formEl.reportValidity(); // Tampilkan popup error browser bawaan
+                            this.$refs.formEl.reportValidity();
                         });
                         return;
                     }
+
                     const result = await Swal.fire({
                         title: 'Konfirmasi Generate',
                         text: "Proses ini akan mencari jadwal terbaik dengan algoritma Artificial Bee Colony. Lanjutkan?",
@@ -494,49 +496,92 @@
                         cancelButtonText: 'Batal'
                     });
 
-                    if (result.isConfirmed) {
-                        this.isGenerating = true;
-                        
-                        try {
-                            const response = await fetch('{{ route('generate.process') }}', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                                },
-                                body: JSON.stringify(this.form)
-                            });
+                    if (!result.isConfirmed) return;
 
-                            const data = await response.json();
+                    this.isGenerating = true;
 
-                            if (!response.ok) {
-                                let errorMsg = data.message || 'Terjadi kesalahan saat generate';
-                                if (data.details) {
-                                    errorMsg += '<br>' + data.details;
-                                }
-                                throw new Error(errorMsg);
-                            }
+                    try {
+                        // LANGKAH 1: Kirim request — server langsung balas (< 1 detik)
+                        const response = await fetch('{{ route('generate.process') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify(this.form)
+                        });
 
-                            Swal.fire({
-                                title: 'Berhasil!',
-                                text: `Jadwal berhasil digenerate dengan nilai fitness conflict: ${data.fitness}`,
-                                icon: 'success'
-                            }).then(() => {
-                                window.location.reload(); // Reload to show history
-                            });
+                        const data = await response.json();
 
-                        } catch (error) {
-                            console.error('Generate error:', error);
-                            Swal.fire({
-                                title: 'Gagal',
-                                html: error.message,
-                                icon: 'error'
-                            });
-                        } finally {
-                            this.isGenerating = false;
+                        if (!response.ok) {
+                            let errorMsg = data.message || 'Terjadi kesalahan saat generate';
+                            if (data.details) errorMsg += '<br>' + data.details;
+                            throw new Error(errorMsg);
                         }
+
+                        // LANGKAH 2: Tampilkan SweetAlert loading dan mulai polling
+                        this.pollingHistoryId = data.history_id;
+                        this.startPolling();
+
+                    } catch (error) {
+                        console.error('Generate error:', error);
+                        this.isGenerating = false;
+                        Swal.fire({
+                            title: 'Gagal',
+                            html: error.message,
+                            icon: 'error'
+                        });
                     }
+                },
+
+                startPolling() {
+                    // Tampilkan loading alert yang tidak bisa ditutup manual
+                    Swal.fire({
+                        title: 'Sedang Memproses...',
+                        html: 'Algoritma ABC sedang berjalan di background.<br><small class="text-gray-500">Halaman akan otomatis diperbarui saat selesai.</small>',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Poll setiap 3 detik
+                    this.pollingInterval = setInterval(async () => {
+                        try {
+                            const res = await fetch(`{{ url('/generate-jadwal/status') }}/${this.pollingHistoryId}`, {
+                                headers: { 'Accept': 'application/json' }
+                            });
+                            const status = await res.json();
+
+                            if (status.status === 'Final') {
+                                clearInterval(this.pollingInterval);
+                                this.isGenerating = false;
+                                Swal.fire({
+                                    title: 'Berhasil!',
+                                    text: `Jadwal berhasil digenerate dengan nilai konflik: ${status.fitness}`,
+                                    icon: 'success'
+                                }).then(() => window.location.reload());
+
+                            } else if (status.status === 'Failed') {
+                                clearInterval(this.pollingInterval);
+                                this.isGenerating = false;
+                                Swal.fire({
+                                    title: 'Gagal',
+                                    text: 'Proses generate jadwal gagal. Silakan coba lagi.',
+                                    icon: 'error'
+                                });
+                            }
+                            // status === 'Pending': lanjut polling berikutnya
+
+                        } catch (e) {
+                            // Network error saat polling — abaikan, coba lagi di interval berikutnya
+                            console.warn('Polling error:', e);
+                        }
+                    }, 3000);
                 }
             }
         }

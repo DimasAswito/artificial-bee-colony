@@ -11,6 +11,7 @@ use App\Models\MataKuliah;
 use App\Models\RiwayatPenjadwalan;
 use App\Models\Ruangan;
 use App\Models\Teknisi;
+use App\Jobs\GenerateJadwalJob;
 use App\Services\ABCAlgorithm;
 use App\Services\TeknisiAssigner;
 use Illuminate\Http\Request;
@@ -103,8 +104,6 @@ class ABCController extends Controller
      */
     public function generate(Request $request)
     {
-        set_time_limit(300); // Maksimum 5 menit eksekusi
-
         $request->validate([
             'judul'        => 'required|string|max:255',
             'population'   => 'required|integer|min:10|max:700',
@@ -124,49 +123,53 @@ class ABCController extends Controller
             ], 422);
         }
 
-        // Langkah 2: Jalankan algoritma ABC
-        $algorithm = new ABCAlgorithm(
-            $request->population,
-            $request->max_cycles,
-            $request->semester,
-            $request->durasi_4_sks
-        );
-        $result = $algorithm->run();
-
-        // Langkah 2b: Assign teknisi ke sesi workshop (post-processing, di luar ABC)
-        // Dilakukan SETELAH algoritma selesai agar tidak menambah beban komputasi ABC.
-        $assigner = new TeknisiAssigner();
-        $result['schedule'] = $assigner->assign($result['schedule']);
-
-        // Langkah 3: Simpan riwayat ke tabel riwayat_penjadwalan
+        // Langkah 2: Buat record riwayat dengan status Pending
+        // Job akan mengisi best_fitness_value dan mengubah status ke Final saat selesai.
         $history = RiwayatPenjadwalan::create([
-            'user_id'           => Auth::id(),
-            'judul'             => $request->judul,
-            'semester'          => $request->semester,
-            'tahun_ajaran'      => $request->tahun_ajaran,
-            'durasi_praktek'    => $request->durasi_4_sks,
-            'best_fitness_value' => $result['conflicts'],
-            'jumlah_iterasi'    => $request->max_cycles,
-            'status'            => 'Final',
+            'user_id'            => Auth::id(),
+            'judul'              => $request->judul,
+            'semester'           => $request->semester,
+            'tahun_ajaran'       => $request->tahun_ajaran,
+            'durasi_praktek'     => $request->durasi_4_sks,
+            'best_fitness_value' => null,
+            'jumlah_iterasi'     => $request->max_cycles,
+            'status'             => 'Pending',
         ]);
 
-        // Langkah 4: Simpan setiap baris jadwal ke tabel jadwal_kuliah
-        foreach ($result['schedule'] as $item) {
-            JadwalKuliah::create([
-                'riwayat_penjadwalan_id' => $history->id,
-                'mata_kuliah_id'         => $item['mata_kuliah_id'],
-                'dosen_id'               => $item['dosen_id'],
-                'ruangan_id'             => $item['ruangan_id'],
-                'hari_id'                => $item['hari_id'],
-                'jam_id'                 => $item['jam_id'],
-                'teknisi_id'             => $item['teknisi_id'] ?? null,
-            ]);
-        }
+        // Langkah 3: Dispatch background job — HTTP response langsung selesai,
+        // algoritma berjalan di belakang tanpa batas timeout server.
+        GenerateJadwalJob::dispatch(
+            $history->id,
+            (int) $request->population,
+            (int) $request->max_cycles,
+            $request->semester,
+            (float) $request->durasi_4_sks,
+        );
 
         return response()->json([
             'success'    => true,
-            'message'    => 'Jadwal berhasil digenerate!',
-            'fitness'    => $result['conflicts'],
+            'pending'    => true,
+            'message'    => 'Generate jadwal sedang diproses di background...',
+            'history_id' => $history->id,
+        ]);
+    }
+
+    /**
+     * Endpoint polling: cek apakah background job sudah selesai.
+     * Dipanggil frontend setiap 3 detik setelah submit generate.
+     *
+     * Response:
+     *   status = Pending  → masih berjalan
+     *   status = Final    → selesai, konflik tersedia
+     *   status = Failed   → job gagal (exception)
+     */
+    public function checkStatus(int $id)
+    {
+        $history = RiwayatPenjadwalan::select('id', 'status', 'best_fitness_value')->findOrFail($id);
+
+        return response()->json([
+            'status'   => $history->status,
+            'fitness'  => $history->best_fitness_value,
             'history_id' => $history->id,
         ]);
     }
