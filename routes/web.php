@@ -16,12 +16,11 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/generate-jadwal', [ABCController::class, 'index'])->name('generate.jadwal');
     Route::post('/generate-jadwal/process', [ABCController::class, 'generate'])->name('generate.process');
-    Route::get('/generate-jadwal/status/{id}', [ABCController::class, 'checkStatus'])->name('generate.status');
     Route::get('/riwayat-penjadwalan', [ABCController::class, 'riwayat'])->name('riwayat.index');
     Route::get('/riwayat-penjadwalan/{id}', [ABCController::class, 'detail'])->name('riwayat.detail');
     Route::get('/riwayat-penjadwalan/{id}/export', [ABCController::class, 'export'])->name('riwayat.export');
     Route::delete('/riwayat-penjadwalan/{id}', [ABCController::class, 'destroy'])->name('riwayat.destroy');
-    Route::get('/bobot-dosen', [BebanDosenController::class, 'index'])->name('bobot-dosen.index');
+    Route::get('/bobot-dosen', [BebanDosenController::class, 'index'])->name('bobot-dosen.data');
     Route::get('/bobot-dosen-data', [BebanDosenController::class, 'data'])->name('bobot-dosen.data');
 
     // Log Routes

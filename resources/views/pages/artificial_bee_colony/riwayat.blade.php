@@ -39,23 +39,14 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm">
-                                        @if($item->status === 'Pending')
-                                            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium bg-yellow-50 text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-400">
-                                                <svg class="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                                                Memproses...
-                                            </span>
-                                        @elseif($item->status === 'Failed')
-                                            <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500">Gagal</span>
-                                        @else
-                                            <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $item->best_fitness_value == 0 ? 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-500' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500' }}">
-                                                {{ $item->best_fitness_value }}
-                                            </span>
-                                        @endif
+                                        <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $item->best_fitness_value == 0 ? 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-500' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500' }}">
+                                            {{ $item->best_fitness_value }}
+                                        </span>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ $item->created_at->format('d M Y H:i') }}</td>
                                     <td class="px-4 py-4 whitespace-nowrap text-right text-sm">
                                         <div class="flex items-center justify-end gap-2">
-                                            @if($item->status === 'Final' && $item->best_fitness_value == 0)
+                                            @if($item->best_fitness_value == 0)
                                             <a href="{{ route('riwayat.export', $item->id) }}" class="flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 hover:text-green-800 dark:border-green-800 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20" title="Export Excel">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sheet">
                                                     <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
@@ -67,7 +58,6 @@
                                                 Export
                                             </a>
                                             @endif
-                                            @if($item->status !== 'Pending')
                                             <a href="{{ route('riwayat.detail', $item->id) }}" class="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
                                                     <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
@@ -75,11 +65,6 @@
                                                 </svg>
                                                 Detail
                                             </a>
-                                            @else
-                                            <span class="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400 cursor-not-allowed">
-                                                Menunggu...
-                                            </span>
-                                            @endif
                                             <button onclick="confirmDeleteRiwayat({{ $item->id }})" class="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-800 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20" title="Hapus Riwayat">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2">
                                                     <path d="M3 6h18"></path>
