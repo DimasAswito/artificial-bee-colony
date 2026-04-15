@@ -34,7 +34,7 @@ class ABCAlgorithm
         $this->maxCycles      = $maxCycles;
         $this->semester       = $semester;
         $this->durasi4Sks     = $durasi4Sks;
-        $this->limit = max(20, (int)($populationSize * 2));
+        $this->limit          = $populationSize * 5;
 
         $this->loadData();
     }
@@ -189,7 +189,7 @@ class ABCAlgorithm
             // -----------------------------------------------------------------
             if ($bestSolution['fitness'] < 1000000) {
                 $cyclesWithoutConflict++;
-                if ($cyclesWithoutConflict > 20) {
+                if ($cyclesWithoutConflict > 50) {
                     $stoppedBy = 'conflict_free';
                     break;
                 }
@@ -638,41 +638,38 @@ protected function generateRandomSchedule(): array
      * Menghitung nilai fitness (kualitas) sebuah jadwal.
      * Semakin kecil nilai = semakin baik.
      *
-     * Optimasi: pre-group berdasarkan hari_id terlebih dahulu agar hanya
-     * pasangan dalam hari yang SAMA yang dibandingkan → ~5x lebih cepat.
+     * Formula: jumlah_pelanggaran_constraint × 1.000.000
+     * - Setiap tipe konflik dihitung terpisah per pasangan kelas agar signal
+     *   penalti lebih kuat. Satu pasangan kelas bisa melanggar 1-3 aturan sekaligus.
+     * - Bobot 1 juta memastikan menghilangkan konflik selalu jadi prioritas utama.
      */
     protected function calculateFitness(array $scheduleData): int
     {
         $violations = 0;
+        $n          = count($scheduleData);
 
-        // Group by hari untuk menghindari perbandingan beda hari yang pasti tidak konflik
-        $byDay = [];
-        foreach ($scheduleData as $item) {
-            $byDay[$item['hari_id']][] = $item;
-        }
+        for ($i = 0; $i < $n; $i++) {
+            $a = $scheduleData[$i];
+            for ($j = $i + 1; $j < $n; $j++) {
+                $b = $scheduleData[$j];
 
-        foreach ($byDay as $dayItems) {
-            $m = count($dayItems);
-            for ($i = 0; $i < $m; $i++) {
-                $a    = $dayItems[$i];
+                // Lewati jika beda hari (tidak mungkin konflik)
+                if ($a['hari_id'] != $b['hari_id']) continue;
+
+                // Cek apakah ada tumpang tindih waktu
                 $aEnd = $a['jam_index'] + $a['duration_slots'];
-                for ($j = $i + 1; $j < $m; $j++) {
-                    $b    = $dayItems[$j];
-                    $bEnd = $b['jam_index'] + $b['duration_slots'];
+                $bEnd = $b['jam_index'] + $b['duration_slots'];
+                if (!($a['jam_index'] < $bEnd && $b['jam_index'] < $aEnd)) continue;
 
-                    // Tidak ada irisan waktu → skip
-                    if (!($a['jam_index'] < $bEnd && $b['jam_index'] < $aEnd)) continue;
-
-                    // Hitung setiap tipe pelanggaran secara terpisah
-                    if ($a['ruangan_id'] == $b['ruangan_id']) $violations++;
-                    if (!empty($a['dosen_id']) && $a['dosen_id'] == $b['dosen_id']) $violations++;
-                    if ($a['semester'] == $b['semester'] && ($a['is_teori'] || $b['is_teori'])) $violations++;
-                    if (
-                        $a['semester'] == $b['semester']
-                        && !$a['is_teori'] && !$b['is_teori']
-                        && !empty($a['kelas']) && $a['kelas'] == $b['kelas']
-                    ) $violations++;
-                }
+                // Hitung setiap tipe pelanggaran secara terpisah agar bobot penalti akurat
+                if ($a['ruangan_id'] == $b['ruangan_id']) $violations++;
+                if (!empty($a['dosen_id']) && $a['dosen_id'] == $b['dosen_id']) $violations++;
+                if ($a['semester'] == $b['semester'] && ($a['is_teori'] || $b['is_teori'])) $violations++;
+                if (
+                    $a['semester'] == $b['semester']
+                    && !$a['is_teori'] && !$b['is_teori']
+                    && !empty($a['kelas']) && $a['kelas'] == $b['kelas']
+                ) $violations++;
             }
         }
 
@@ -702,41 +699,22 @@ protected function generateRandomSchedule(): array
     /**
      * Mengembalikan daftar indeks kelas yang sedang mengalami konflik.
      * Digunakan oleh mutate() untuk menentukan kelas mana yang perlu dipindah.
-     *
-     * Optimasi: pre-group by hari_id agar tidak iterasi O(n²) penuh.
      */
     protected function getConflictingIndices(array $scheduleData): array
     {
-        $conflictSet = [];
+        $indices = [];
+        $n       = count($scheduleData);
 
-        // Group dengan menyertakan indeks aslinya
-        $byDay = [];
-        foreach ($scheduleData as $idx => $item) {
-            $byDay[$item['hari_id']][] = ['idx' => $idx, 'data' => $item];
-        }
-
-        foreach ($byDay as $dayItems) {
-            $m = count($dayItems);
-            for ($i = 0; $i < $m; $i++) {
-                $a    = $dayItems[$i]['data'];
-                $aIdx = $dayItems[$i]['idx'];
-                $aEnd = $a['jam_index'] + $a['duration_slots'];
-                for ($j = $i + 1; $j < $m; $j++) {
-                    $b    = $dayItems[$j]['data'];
-                    $bIdx = $dayItems[$j]['idx'];
-                    $bEnd = $b['jam_index'] + $b['duration_slots'];
-
-                    if (!($a['jam_index'] < $bEnd && $b['jam_index'] < $aEnd)) continue;
-
-                    if ($this->hasConflict($a, $b)) {
-                        $conflictSet[$aIdx] = true;
-                        $conflictSet[$bIdx] = true;
-                    }
+        for ($i = 0; $i < $n; $i++) {
+            for ($j = $i + 1; $j < $n; $j++) {
+                if ($this->hasConflict($scheduleData[$i], $scheduleData[$j])) {
+                    $indices[] = $i;
+                    $indices[] = $j;
                 }
             }
         }
 
-        return array_keys($conflictSet);
+        return array_unique($indices);
     }
 
     // =========================================================================
