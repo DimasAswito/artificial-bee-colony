@@ -352,8 +352,8 @@
                     judul: '',
                     tahun_ajaran: @json($calendarInfo['default_tahun_ajaran']),
                     semester: @json($calendarInfo['default_semester']),
-                    population: 50,
-                    max_cycles: 1000,
+                    population: 30,
+                    max_cycles: 500,
                     durasi_4_sks: 4 // Default 4 Jam
                 },
                 isGenerating: false,
