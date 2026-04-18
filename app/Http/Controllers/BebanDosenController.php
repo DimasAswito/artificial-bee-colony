@@ -184,7 +184,7 @@ class BebanDosenController extends Controller
             $pAjar = $stat['sks_ajar_praktek_total'];
             $totAjar = $tAjar + $pAjar;
             if ($totAjar > 0) {
-                $stat['sks_ajar_string'] = "{$totAjar} ({$tAjar}/{$pAjar})";
+                $stat['sks_ajar_string'] = "{$totAjar}";
             }
 
             // Dummy bobot agar urutan sorting berfungsi menggunakan nilai SKS Ajar 
