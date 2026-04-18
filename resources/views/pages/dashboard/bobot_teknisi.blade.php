@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Bobot SKS Setiap Dosen" />
+    <x-common.page-breadcrumb pageTitle="Bobot SKS Setiap Teknisi" />
 
-    <div class="space-y-6" x-data="dosenPageData()">
+    <div class="space-y-6" x-data="teknisiPageData()">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Card Metric: Total Dosen -->
             <div class="lg:col-span-1">
@@ -16,10 +16,10 @@
 
                     <div class="flex items-end justify-between mt-5">
                         <div>
-                            <span class="text-sm text-gray-500 dark:text-gray-400">Data Dosen</span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Data Teknisi</span>
                             <div class="flex items-baseline gap-1 mt-2">
-                <h4 class="font-bold text-gray-800 text-title-sm dark:text-white/90" x-text="activeDosenCount"></h4>
-                                <span class="text-sm text-gray-400" x-text="'/' + filteredData.length + ' Dosen'"></span>
+                <h4 class="font-bold text-gray-800 text-title-sm dark:text-white/90" x-text="activeTeknisiCount"></h4>
+                                <span class="text-sm text-gray-400" x-text="'/' + filteredData.length + ' Teknisi'"></span>
                             </div>
                         </div>
                         
@@ -48,8 +48,8 @@
                                 @endforeach
                             </select>
                         </div>
-                        <button @click="fetchDosen" class="whitespace-nowrap rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 focus:ring-4 focus:ring-brand-500/20">
-                            Lihat Bobot Dosen
+                        <button @click="fetchTeknisi" class="whitespace-nowrap rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 focus:ring-4 focus:ring-brand-500/20">
+                            Lihat Bobot Teknisi
                         </button>
                     </div>
                 </div>
@@ -61,7 +61,7 @@
             <!-- Header -->
             <div class="flex flex-col gap-2 px-5 mb-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Data Dosen</h3>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Data Teknisi</h3>
                 </div>
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <form>
@@ -82,41 +82,29 @@
                     <table class="min-w-full">
                         <thead>
                             <tr class="border-gray-200 border-y dark:border-gray-700">
-                                <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Nama</th>
-                                <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Jenis Dosen</th>
-                                <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">SKS Mata Kuliah (T/P)</th>
-                                <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">SKS Ajar</th>
+                                <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Nama Teknisi</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Beban SKS</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Status</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                            <template x-for="dosen in paginatedData" :key="dosen.id">
+                            <template x-for="teknisi in paginatedData" :key="teknisi.id">
                                 <tr>
                                     <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white" x-text="dosen.nama_dosen"></div>
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white" x-text="teknisi.nama"></div>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="dosen.jenis_dosen || '-'"></div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="teknisi.beban_sks ?? '-'"></div>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="dosen.sks_mk_string"></div>
-                                    </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="dosen.sks_ajar_string"></div>
-                                    </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="dosen.beban_sks ?? '-'"></div>
-                                    </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(dosen.status || 'Active')" x-text="dosen.status || 'Active'"></span>
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(teknisi.status || 'Active')" x-text="teknisi.status || 'Active'"></span>
                                     </td>
                                 </tr>
                             </template>
                             <template x-if="paginatedData.length === 0">
                                 <tr>
-                                    <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                                        <span x-text="selectedRiwayat && !isLoading ? 'Data tidak ditemukan.' : 'Silakan pilih jadwal dari dropdown dan klik Lihat Bobot Dosen.'"></span>
+                                    <td colspan="3" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                        <span x-text="selectedRiwayat && !isLoading ? 'Data tidak ditemukan.' : 'Silakan pilih jadwal dari dropdown dan klik Lihat Bobot Teknisi.'"></span>
                                     </td>
                                 </tr>
                             </template>
@@ -161,9 +149,9 @@
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        function dosenPageData() {
+        function teknisiPageData() {
             return {
-                dosenData: [],
+                teknisiData: [],
                 logs: [],
                 itemsPerPage: 5,
                 currentPage: 1,
@@ -186,7 +174,7 @@
 
                 async fetchLogs() {
                     try {
-                        const response = await fetch('{{ route('logs.data') }}?type=Data Dosen');
+                        const response = await fetch('{{ route('logs.data') }}?type=Data Teknisi');
                         const data = await response.json();
                         this.logs = data;
                     } catch (error) {
@@ -194,37 +182,36 @@
                     }
                 },
 
-                async fetchDosen() {
+                async fetchTeknisi() {
                     if (!this.selectedRiwayat) {
                         Swal.fire('Perhatian', 'Pilih riwayat penjadwalan terlebih dahulu dari dropdown', 'warning');
                         return;
                     }
                     this.isLoading = true;
                     try {
-                        let url = '{{ route('bobot-dosen.data') }}?riwayat_id=' + this.selectedRiwayat;
+                        let url = '{{ route('bobot-teknisi.data') }}?riwayat_id=' + this.selectedRiwayat;
 
                         const response = await fetch(url);
                         const data = await response.json();
-                        this.dosenData = data;
+                        this.teknisiData = data;
                     } catch (error) {
                         console.error('Error fetching data:', error);
-                        Swal.fire('Error', 'Gagal memuat data dosen', 'error');
+                        Swal.fire('Error', 'Gagal memuat data teknisi', 'error');
                     } finally {
                         this.isLoading = false;
                     }
                 },
 
                 get filteredData() {
-                    if (!this.search) return this.dosenData;
-                    return this.dosenData.filter(d => 
-                        d.nama_dosen.toLowerCase().includes(this.search.toLowerCase()) || 
-                        (d.jenis_dosen && d.jenis_dosen.toLowerCase().includes(this.search.toLowerCase())) ||
-                        (d.bobot !== null && d.bobot.toString().includes(this.search))
+                    if (!this.search) return this.teknisiData;
+                    return this.teknisiData.filter(t => 
+                        t.nama.toLowerCase().includes(this.search.toLowerCase()) || 
+                        (t.beban_sks !== null && t.beban_sks.toString().includes(this.search))
                     );
                 },
 
-                get activeDosenCount() {
-                    return this.filteredData.filter(d => (d.status || 'Active') === 'Active').length;
+                get activeTeknisiCount() {
+                    return this.filteredData.filter(t => (t.status || 'Active') === 'Active').length;
                 },
 
                 get totalPages() {

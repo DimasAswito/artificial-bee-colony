@@ -73,6 +73,30 @@
                                     </span>
                                 </div>
                             </div>
+
+                            <!-- Kelas (Input) -->
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Kelas <span class="text-red-500">*</span>
+                                </label>
+                                <div x-data="{ isOptionSelected: false }" class="relative">
+                                     <select x-model="form.kelas" required
+                                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                                        :class="isOptionSelected && 'text-gray-800 dark:text-white/90'" @change="isOptionSelected = true">
+                                        <option value="" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">Pilih Kelas</option>
+                                        <option value="A" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(A)</option>
+                                        <option value="B" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(B)</option>
+                                        <option value="C" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(C)</option>
+                                        <option value="A,B" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(A,B)</option>
+                                        <option value="A,B,C" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(A,B,C)</option>
+                                    </select>
+                                    <span class="pointer-events-none absolute top-1/2 right-4 z-30 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                                        <svg class="stroke-current" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M4.79175 7.396L10.0001 12.6043L15.2084 7.396" stroke="" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
                          <div class="mt-4">
@@ -146,6 +170,7 @@
                             <tr class="border-gray-200 border-y dark:border-gray-700">
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Kode MK</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Nama Mata Kuliah</th>
+                                <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Kelas</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">SKS (T/P)</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Semester</th>
                                 <th scope="col" class="px-4 py-3 font-normal text-gray-500 text-start text-theme-sm dark:text-gray-400">Dosen Pengampu</th>
@@ -161,6 +186,9 @@
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900 dark:text-gray-300" x-text="mk.name"></div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="'(' + (mk.kelas || '-') + ')'"></div>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-500 dark:text-gray-400" x-text="(parseInt(mk.sks_teori) + parseInt(mk.sks_praktek)) + ' (' + mk.sks_teori + '/' + mk.sks_praktek + ')'"></div>
@@ -389,6 +417,29 @@
                                 </div>
                             </div>
 
+                             <!-- Kelas (Input) (Edit Form) -->
+                            <div class="relative z-20 bg-transparent">
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Kelas <span class="text-error-500">*</span>
+                                </label>
+                                <div class="relative">
+                                     <select x-model="form.kelas" required
+                                        class="text-gray-800 dark:text-white/90 dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 text-sm placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:placeholder:text-white/30">
+                                        <option value="" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">Pilih Kelas</option>
+                                        <option value="A" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(A)</option>
+                                        <option value="B" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(B)</option>
+                                        <option value="C" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(C)</option>
+                                        <option value="A,B" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(A,B)</option>
+                                        <option value="A,B,C" class="text-gray-700 dark:bg-gray-900 dark:text-gray-400">(A,B,C)</option>
+                                    </select>
+                                    <span class="pointer-events-none absolute top-1/2 right-4 z-30 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                                        <svg class="stroke-current" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M4.79175 7.396L10.0001 12.6043L15.2084 7.396" stroke="" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+
                             <!-- Status Toggle -->
                             <div>
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
@@ -448,6 +499,7 @@
                     sks_teori: '',
                     sks_praktek: '',
                     semester: '',
+                    kelas: '',
                     dosen_id: '', // initialized to empty string
                     status: 'Active'
                 },
@@ -566,6 +618,7 @@
                         sks_teori: mk.sks_teori,
                         sks_praktek: mk.sks_praktek,
                         semester: mk.semester,
+                        kelas: mk.kelas,
                         dosen: mk.dosen !== '-' ? mk.dosen : '',
                         dosen_id: mk.dosen_id,
                         status: mk.status || 'Active'
@@ -580,12 +633,12 @@
                 },
 
                 resetForm() {
-                    this.form = { id: null, kode_mk: '', name: '', sks_teori: '', sks_praktek: '', semester: '', dosen: '', dosen_id: null, status: 'Active' };
+                    this.form = { id: null, kode_mk: '', name: '', sks_teori: '', sks_praktek: '', semester: '', kelas: '', dosen: '', dosen_id: null, status: 'Active' };
                     this.isEditing = false;
                 },
 
                 async saveMataKuliah() {
-                    if (!this.form.kode_mk || !this.form.name || this.form.sks_teori === '' || this.form.sks_praktek === '' || !this.form.dosen_id) {
+                    if (!this.form.kode_mk || !this.form.name || this.form.sks_teori === '' || this.form.sks_praktek === '' || !this.form.kelas || !this.form.dosen_id) {
                         Swal.fire('Error', 'Semua kolom bertanda bintang wajib diisi', 'error');
                         return;
                     }
@@ -600,6 +653,7 @@
                         sks_teori: this.form.sks_teori,
                         sks_praktek: this.form.sks_praktek,
                         semester: this.form.semester,
+                        kelas: this.form.kelas,
                         // If dosen is selected, we need its ID. 
                         // For now assuming the select dropdown binds to `form.dosen_id` or similar if using ID.
                         // Wait, the select logic in HTML needs checking.

@@ -63,6 +63,11 @@ class MenuHelper
                 'path' => '/bobot-dosen',
             ],
             [
+                'icon' => 'user-profile',
+                'name' => 'Bobot Teknisi',
+                'path' => '/bobot-teknisi',
+            ],
+            [
                 'icon' => 'charts',
                 'name' => 'Log Pengguna',
                 // 'path' => '/profile',

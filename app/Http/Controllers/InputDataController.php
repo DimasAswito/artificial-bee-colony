@@ -262,6 +262,7 @@ class InputDataController extends Controller
         'sks_teori' => $mk->sks_teori,
         'sks_praktek' => $mk->sks_praktek,
         'semester' => $mk->semester,
+        'kelas' => $mk->kelas,
         'dosen' => $mk->dosen ? $mk->dosen->nama_dosen : '-',
         'dosen_id' => $mk->dosen_id, // Needed for edit form
         'status' => $mk->status
@@ -279,6 +280,7 @@ class InputDataController extends Controller
       'sks_teori' => 'required|integer|min:0',
       'sks_praktek' => 'required|integer|min:0',
       'semester' => 'required|numeric|min:1|max:8',
+      'kelas' => 'required|string',
       'dosen_id' => 'nullable|exists:dosen,id',
       'status' => 'nullable|in:Active,Inactive'
     ]);
@@ -305,6 +307,7 @@ class InputDataController extends Controller
       'sks_teori' => 'required|integer|min:0',
       'sks_praktek' => 'required|integer|min:0',
       'semester' => 'required|numeric|min:1|max:8',
+      'kelas' => 'required|string',
       'dosen_id' => 'nullable|exists:dosen,id',
       'status' => 'nullable|in:Active,Inactive'
     ]);

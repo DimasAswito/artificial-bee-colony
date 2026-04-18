@@ -3,6 +3,7 @@
 use App\Http\Controllers\ABCController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BebanDosenController;
+use App\Http\Controllers\BebanTeknisiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InputDataController;
 use App\Http\Controllers\LogController;
@@ -20,8 +21,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/riwayat-penjadwalan/{id}', [ABCController::class, 'detail'])->name('riwayat.detail');
     Route::get('/riwayat-penjadwalan/{id}/export', [ABCController::class, 'export'])->name('riwayat.export');
     Route::delete('/riwayat-penjadwalan/{id}', [ABCController::class, 'destroy'])->name('riwayat.destroy');
-    Route::get('/bobot-dosen', [BebanDosenController::class, 'index'])->name('bobot-dosen.data');
-    Route::get('/bobot-dosen-data', [BebanDosenController::class, 'data'])->name('bobot-dosen.data');
+    Route::get('/bobot-dosen', [BebanDosenController::class, 'index'])->name('bobot-dosen.index');
+    Route::get('/bobot-teknisi', [BebanTeknisiController::class, 'index'])->name('bobot-teknisi.index');
+    Route::get('/bobot-teknisi-data', [BebanTeknisiController::class, 'count'])->name('bobot-teknisi.data');
+    Route::get('/bobot-dosen-data', [BebanDosenController::class, 'count'])->name('bobot-dosen.data');
 
     // Log Routes
     Route::get('/log', [LogController::class, 'index'])->name('log.index');
