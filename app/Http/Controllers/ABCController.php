@@ -30,7 +30,11 @@ class ABCController extends Controller
     public function index()
     {
         $dosen      = Dosen::where('status', 'Active')->get();
-        $mataKuliah = MataKuliah::where('status', 'Active')->with('dosen')->get();
+        $mataKuliah = MataKuliah::where('status', 'Active')
+            ->with('dosen')
+            ->orderByRaw('CAST(semester AS UNSIGNED) ASC')
+            ->orderBy('nama_matkul', 'asc')
+            ->get();
         $ruangan    = Ruangan::where('status', 'Active')->get();
         $hari       = Hari::where('status', 'Active')->get();
         $jam        = Jam::where('status', 'Active')->get();

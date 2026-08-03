@@ -251,7 +251,10 @@ class InputDataController extends Controller
 
   public function getMataKuliahData()
   {
-    $mataKuliah = MataKuliah::with('dosen')->orderBy('id', 'asc')->get();
+    $mataKuliah = MataKuliah::with('dosen')
+      ->orderByRaw('CAST(semester AS UNSIGNED) ASC')
+      ->orderBy('nama_matkul', 'asc')
+      ->get();
 
     // Map data to match frontend expectation
     $formattedData = $mataKuliah->map(function ($mk) {
