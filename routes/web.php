@@ -17,6 +17,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/generate-jadwal', [ABCController::class, 'index'])->name('generate.jadwal');
     Route::post('/generate-jadwal/process', [ABCController::class, 'generate'])->name('generate.process');
+    Route::get('/generate-jadwal/status/{id}', [ABCController::class, 'status'])->name('generate.status');
     Route::get('/riwayat-penjadwalan', [ABCController::class, 'riwayat'])->name('riwayat.index');
     Route::get('/riwayat-penjadwalan/{id}', [ABCController::class, 'detail'])->name('riwayat.detail');
     Route::get('/riwayat-penjadwalan/{id}/export', [ABCController::class, 'export'])->name('riwayat.export');

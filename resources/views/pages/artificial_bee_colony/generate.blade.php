@@ -358,6 +358,17 @@
                 },
                 isGenerating: false,
                 isModalOpen: false,
+                pollingStatus: '',    // 'Pending' | 'Processing' | 'Final' | 'Failed'
+                pollingMessage: '',
+                _pollingInterval: null,
+
+                get pollingProgressText() {
+                    switch (this.pollingStatus) {
+                        case 'Pending':    return 'Menunggu antrian...';
+                        case 'Processing': return 'Algoritma ABC sedang berjalan...';
+                        default:           return 'Sedang Memproses...';
+                    }
+                },
                 
                 // Table State
                 search: '',
@@ -475,16 +486,15 @@
                 async submitGenerate() {
                     // Manual Native Validation Trigger for hidden modal inputs
                     if (!this.$refs.formEl.checkValidity()) {
-                        // If it's the modal inputs causing error, pop it open so tooltips can show
                         if (!this.$refs.popInput.validity.valid || !this.$refs.cycleInput.validity.valid) {
                             this.isModalOpen = true;
                         }
-                        
                         this.$nextTick(() => {
-                            this.$refs.formEl.reportValidity(); // Tampilkan popup error browser bawaan
+                            this.$refs.formEl.reportValidity();
                         });
                         return;
                     }
+
                     const result = await Swal.fire({
                         title: 'Konfirmasi Generate',
                         text: "Proses ini akan mencari jadwal terbaik dengan algoritma Artificial Bee Colony. Lanjutkan?",
@@ -494,49 +504,124 @@
                         cancelButtonText: 'Batal'
                     });
 
-                    if (result.isConfirmed) {
-                        this.isGenerating = true;
-                        
-                        try {
-                            const response = await fetch('{{ route('generate.process') }}', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                                },
-                                body: JSON.stringify(this.form)
-                            });
+                    if (!result.isConfirmed) return;
 
-                            const data = await response.json();
+                    this.isGenerating = true;
+                    this.pollingStatus = '';
 
-                            if (!response.ok) {
-                                let errorMsg = data.message || 'Terjadi kesalahan saat generate';
-                                if (data.details) {
-                                    errorMsg += '<br>' + data.details;
+                    try {
+                        // POST ke controller — sekarang hanya dispatch job ke queue (< 2 detik)
+                        const response = await fetch('{{ route('generate.process') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify(this.form)
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            // Error validasi / capacity check — tampilkan error langsung
+                            let errorMsg = data.message || 'Terjadi kesalahan saat generate';
+                            if (data.details) errorMsg += '<br>' + data.details;
+                            throw new Error(errorMsg);
+                        }
+
+                        // Job berhasil di-dispatch — mulai polling status
+                        this.startPolling(data.history_id);
+
+                    } catch (error) {
+                        console.error('Generate error:', error);
+                        this.isGenerating = false;
+                        Swal.fire({
+                            title: 'Gagal',
+                            html: error.message,
+                            icon: 'error'
+                        });
+                    }
+                },
+
+                /**
+                 * Polling status setiap 3 detik.
+                 * Berhenti otomatis ketika status Final atau Failed.
+                 */
+                startPolling(historyId) {
+                    const statusUrl = `{{ url('/generate-jadwal/status') }}/${historyId}`;
+
+                    // Tampilkan SweetAlert loading yang tidak bisa ditutup
+                    Swal.fire({
+                        title: 'Sedang Memproses Jadwal',
+                        html: `
+                            <div class="text-sm text-gray-600 mb-4" id="swal-status-text">Menunggu antrian...</div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                <div id="swal-progress-bar"
+                                    class="h-2.5 rounded-full"
+                                    style="width: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1); background-size: 200% 100%; animation: shimmer 1.5s infinite linear;">
+                                </div>
+                            </div>
+                            <style>
+                                @keyframes shimmer {
+                                    0%   { background-position: 200% 0; }
+                                    100% { background-position: -200% 0; }
                                 }
-                                throw new Error(errorMsg);
+                            </style>
+                            <p class="mt-4 text-xs text-gray-400">Proses berjalan di background. Halaman akan diarahkan otomatis saat selesai.</p>
+                        `,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    this._pollingInterval = setInterval(async () => {
+                        try {
+                            const res  = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+                            const data = await res.json();
+
+                            // Update teks status di dalam SweetAlert
+                            const statusEl = document.getElementById('swal-status-text');
+                            if (statusEl) {
+                                if (data.status === 'Pending')    statusEl.textContent = 'Menunggu antrian...';
+                                if (data.status === 'Processing') statusEl.textContent = 'Algoritma ABC sedang berjalan...';
                             }
 
-                            Swal.fire({
-                                title: 'Berhasil!',
-                                text: `Jadwal berhasil digenerate dengan nilai fitness conflict: ${data.fitness}`,
-                                icon: 'success'
-                            }).then(() => {
-                                window.location.reload(); // Reload to show history
-                            });
+                            if (data.status === 'Final') {
+                                this.stopPolling();
+                                Swal.fire({
+                                    title: 'Berhasil!',
+                                    text: `Jadwal berhasil digenerate! Konflik: ${data.fitness}`,
+                                    icon: 'success',
+                                    confirmButtonText: 'Lihat Jadwal'
+                                }).then(() => {
+                                    window.location.href = `{{ url('/riwayat-penjadwalan') }}/${data.history_id}`;
+                                });
 
-                        } catch (error) {
-                            console.error('Generate error:', error);
-                            Swal.fire({
-                                title: 'Gagal',
-                                html: error.message,
-                                icon: 'error'
-                            });
-                        } finally {
-                            this.isGenerating = false;
+                            } else if (data.status === 'Failed') {
+                                this.stopPolling();
+                                Swal.fire({
+                                    title: 'Generate Gagal',
+                                    text: 'Terjadi kesalahan saat memproses jadwal di background. Silakan coba lagi.',
+                                    icon: 'error'
+                                });
+                            }
+
+                        } catch (e) {
+                            // Abaikan error network sementara, tetap polling
+                            console.warn('Polling error (akan dicoba lagi):', e);
                         }
+                    }, 3000); // polling setiap 3 detik
+                },
+
+                stopPolling() {
+                    if (this._pollingInterval) {
+                        clearInterval(this._pollingInterval);
+                        this._pollingInterval = null;
                     }
+                    this.isGenerating = false;
+                    this.pollingStatus = '';
                 }
             }
         }

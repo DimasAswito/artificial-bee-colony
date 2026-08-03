@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\JadwalExport;
+use App\Jobs\GenerateJadwalJob;
 use App\Models\Dosen;
 use App\Models\Hari;
 use App\Models\JadwalKuliah;
@@ -11,7 +12,6 @@ use App\Models\MataKuliah;
 use App\Models\RiwayatPenjadwalan;
 use App\Models\Ruangan;
 use App\Models\Teknisi;
-use App\Services\ABCAlgorithm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
@@ -102,8 +102,6 @@ class ABCController extends Controller
      */
     public function generate(Request $request)
     {
-        set_time_limit(300); // Maksimum 5 menit eksekusi
-
         $request->validate([
             'judul'        => 'required|string|max:255',
             'population'   => 'required|integer|min:10|max:700',
@@ -123,45 +121,52 @@ class ABCController extends Controller
             ], 422);
         }
 
-        // Langkah 2: Jalankan algoritma ABC
-        $algorithm = new ABCAlgorithm(
+        // Langkah 2: Buat record riwayat dengan status 'Pending' terlebih dahulu
+        // Algoritma ABC akan dijalankan oleh background job (tanpa batas timeout HTTP)
+        $history = RiwayatPenjadwalan::create([
+            'user_id'            => Auth::id(),
+            'judul'              => $request->judul,
+            'semester'           => $request->semester,
+            'tahun_ajaran'       => $request->tahun_ajaran,
+            'durasi_praktek'     => $request->durasi_4_sks,
+            'best_fitness_value' => 0,
+            'jumlah_iterasi'     => $request->max_cycles,
+            'status'             => 'Pending',
+        ]);
+
+        // Langkah 3: Dispatch job ke queue — response langsung kembali ke browser (~1 detik)
+        GenerateJadwalJob::dispatch(
+            $history->id,
             $request->population,
             $request->max_cycles,
             $request->semester,
-            $request->durasi_4_sks
+            (float) $request->durasi_4_sks
         );
-        $result = $algorithm->run();
-
-        // Langkah 3: Simpan riwayat ke tabel riwayat_penjadwalan
-        $history = RiwayatPenjadwalan::create([
-            'user_id'           => Auth::id(),
-            'judul'             => $request->judul,
-            'semester'          => $request->semester,
-            'tahun_ajaran'      => $request->tahun_ajaran,
-            'durasi_praktek'    => $request->durasi_4_sks,
-            'best_fitness_value' => $result['conflicts'],
-            'jumlah_iterasi'    => $request->max_cycles,
-            'status'            => 'Final',
-        ]);
-
-        // Langkah 4: Simpan setiap baris jadwal ke tabel jadwal_kuliah
-        foreach ($result['schedule'] as $item) {
-            JadwalKuliah::create([
-                'riwayat_penjadwalan_id' => $history->id,
-                'mata_kuliah_id'         => $item['mata_kuliah_id'],
-                'dosen_id'               => $item['dosen_id'],
-                'ruangan_id'             => $item['ruangan_id'],
-                'hari_id'                => $item['hari_id'],
-                'jam_id'                 => $item['jam_id'],
-                'teknisi_id'             => $item['teknisi_id'] ?? null,
-            ]);
-        }
 
         return response()->json([
             'success'    => true,
-            'message'    => 'Jadwal berhasil digenerate!',
-            'fitness'    => $result['conflicts'],
+            'queued'     => true,
+            'message'    => 'Proses generate dimulai di background. Halaman ini akan otomatis memperbarui status.',
             'history_id' => $history->id,
+        ]);
+    }
+
+    /**
+     * Endpoint polling: kembalikan status terkini job generate jadwal.
+     * Dipanggil oleh frontend setiap beberapa detik untuk mengecek progres.
+     */
+    public function status(int $id)
+    {
+        $history = RiwayatPenjadwalan::find($id);
+
+        if (!$history) {
+            return response()->json(['status' => 'not_found'], 404);
+        }
+
+        return response()->json([
+            'status'     => $history->status,             // Pending | Processing | Final | Failed
+            'history_id' => $history->id,
+            'fitness'    => $history->best_fitness_value,
         ]);
     }
 
