@@ -58,14 +58,7 @@ class ABCAlgorithm
 
         // Pisahkan pool ruangan: Teori pakai Ruang 101/Aula, Praktek pakai semua ruangan
         $this->data['ruangan'] = Ruangan::where('status', 'Active')->get();
-        $this->data['teori_ruangans'] = $this->data['ruangan']
-            ->filter(fn($r) => in_array(strtolower($r->nama_ruangan), ['ruang 101', 'aula']))
-            ->values();
-
-        // Fallback: Jika tidak ada Ruang 101/Aula, gunakan semua ruangan
-        if ($this->data['teori_ruangans']->isEmpty()) {
-            $this->data['teori_ruangans'] = $this->data['ruangan'];
-        }
+        $this->data['teori_ruangans'] = Ruangan::filterTeoriPool($this->data['ruangan']);
 
         $this->data['hari'] = Hari::where('status', 'Active')->get();
         $this->data['jam']  = Jam::where('status', 'Active')->orderBy('jam_mulai')->get()->values();
@@ -78,6 +71,31 @@ class ABCAlgorithm
         });
         
         $this->data['teknisi'] = \App\Models\Teknisi::where('status', 'Active')->get();
+    }
+
+    // =========================================================================
+    // HELPER: KELAS GABUNGAN (mis. "A,B" / "A,B,C")
+    // =========================================================================
+
+    /**
+     * Memecah nilai kolom kelas (mis. "A,B,C") menjadi array huruf kelas.
+     * Kolom kelas mendukung kombinasi lebih dari satu kelas dalam satu MK
+     * (lihat dropdown di form master data mata kuliah). Delegasi ke
+     * KelasHelper supaya definisinya konsisten dengan ABCController::detail().
+     */
+    protected function kelasSet(?string $kelas): array
+    {
+        return \App\Support\KelasHelper::set($kelas);
+    }
+
+    /**
+     * Dua MK dianggap melibatkan mahasiswa yang sama jika kelasnya beririsan,
+     * bukan harus identik — MK kelas "A" dan MK kelas "A,B" sama-sama
+     * melibatkan mahasiswa kelas A sehingga harus dianggap bentrok.
+     */
+    protected function kelasIntersects(?string $a, ?string $b): bool
+    {
+        return \App\Support\KelasHelper::intersects($a, $b);
     }
 
     // =========================================================================
@@ -237,6 +255,7 @@ protected function generateRandomSchedule(): array
     // Mencegah 1 dosen mengajar 2 kelas berbeda di waktu yang sama (lintas semester)
     $dosenSlots = [];
     $teknisiSlots = []; // Tracker slot Teknisi per hari
+    $roomSlots = []; // Tracker slot Ruangan: [ruangan_id][hari_id] => [[start, end], ...]
 
     foreach ($sorted as $mk) {
         [$totalDurationSlots, $occurrences] = $this->calculateDurationSlots($mk);
@@ -247,37 +266,37 @@ protected function generateRandomSchedule(): array
             // Level 1 — ideal
             $assignment = $this->getRandomAssignment(
                 $mk, $mk->dosen_id, $totalDurationSlots,
-                $usedHariIds, $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots, $fixedTeknisiId
+                $usedHariIds, $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots, $fixedTeknisiId, $roomSlots
             );
 
             // Level 2 — boleh hari yang sama
             if ($assignment === null) {
                 $assignment = $this->getRandomAssignment(
                     $mk, $mk->dosen_id, $totalDurationSlots,
-                    [], $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots, $fixedTeknisiId
+                    [], $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots, $fixedTeknisiId, $roomSlots
                 );
             }
 
-            // Level 3 — lepas kelas & dosen, tetap hindari teori
+            // Level 3 — lepas kelas & dosen, tetap hindari teori & ruangan
             if ($assignment === null) {
                 $assignment = $this->getRandomAssignment(
                     $mk, $mk->dosen_id, $totalDurationSlots,
-                    [], $teoriSlots, [], [], [], $fixedTeknisiId
+                    [], $teoriSlots, [], [], [], $fixedTeknisiId, $roomSlots
                 );
             }
 
-            // Level 4 — abaikan semua constraint; hanya syarat blok waktu valid
+            // Level 4 — abaikan semua constraint kecuali ruangan & blok waktu valid
             if ($assignment === null) {
                 $assignment = $this->getRandomAssignment(
                     $mk, $mk->dosen_id, $totalDurationSlots,
-                    [], [], [], [], [], $fixedTeknisiId
+                    [], [], [], [], [], $fixedTeknisiId, $roomSlots
                 );
             }
 
             if ($assignment) {
                 $schedule[]    = $assignment;
                 $usedHariIds[] = $assignment['hari_id']; // B3: Sesi MK yang sama harus beda hari
-                
+
                 if ($i === 0 && !empty($assignment['teknisi_id'])) {
                     $fixedTeknisiId = $assignment['teknisi_id'];
                 }
@@ -291,20 +310,26 @@ protected function generateRandomSchedule(): array
                     // Teori: blokir untuk semua workshop semester yang sama
                     $teoriSlots[$sem][$hId][] = [$start, $end];
                 } elseif (!empty($mk->kelas)) {
-                    // Workshop dengan kelas (A/B/C): blokir untuk workshop
-                    // kelas yang sama di semester yang sama
-                    $kelasSlots[$sem][$mk->kelas][$hId][] = [$start, $end];
+                    // Workshop dengan kelas gabungan (mis. "A,B"): blokir tiap huruf
+                    // kelas secara individual agar workshop kelas tunggal & gabungan
+                    // saling terlihat satu sama lain.
+                    foreach ($this->kelasSet($mk->kelas) as $letter) {
+                        $kelasSlots[$sem][$letter][$hId][] = [$start, $end];
+                    }
                 }
 
                 // Dosen: blokir slot ini untuk semua mata kuliah dosen yang sama
                 if ($mk->dosen_id) {
                     $dosenSlots[$mk->dosen_id][$hId][] = [$start, $end];
                 }
-                
+
                 // Teknisi: blokir slot ini untuk semua teknisi yang sama
                 if (!empty($assignment['teknisi_id'])) {
                     $teknisiSlots[$assignment['teknisi_id']][$hId][] = [$start, $end];
                 }
+
+                // Ruangan: blokir slot ini untuk ruangan yang baru dipakai
+                $roomSlots[$assignment['ruangan_id']][$hId][] = [$start, $end];
             }
         }
     }
@@ -365,7 +390,7 @@ protected function generateRandomSchedule(): array
      *   format: [semester][hari_id] => [[start, end], ...]. Digunakan saat inisialisasi
      *   untuk menghindari konflik semester sejak awal.
      */
-    protected function getRandomAssignment($mk, $dosenId, int $durationSlots, array $excludedHariIds = [], array $teoriSlotsPerSemester = [], array $kelasSlots = [], array $dosenSlots = [], array $teknisiSlots = [], ?int $forcedTeknisiId = null): ?array
+    protected function getRandomAssignment($mk, $dosenId, int $durationSlots, array $excludedHariIds = [], array $teoriSlotsPerSemester = [], array $kelasSlots = [], array $dosenSlots = [], array $teknisiSlots = [], ?int $forcedTeknisiId = null, array $roomSlots = []): ?array
     {
         $availableDays = $this->data['hari']->whereNotIn('id', $excludedHariIds);
 
@@ -373,6 +398,9 @@ protected function generateRandomSchedule(): array
         if ($availableDays->isEmpty()) {
             $availableDays = $this->data['hari'];
         }
+
+        // Pool ruangan sesuai tipe MK (Teori/Campuran -> 101/Aula | Praktek -> semua)
+        $roomPool = ($mk->sks_teori > 0) ? $this->data['teori_ruangans'] : $this->data['ruangan'];
 
         foreach ($availableDays->shuffle() as $hari) {
             $validJamIndices = $this->getValidJamIndices($hari, $durationSlots);
@@ -388,17 +416,26 @@ protected function generateRandomSchedule(): array
                 }));
             }
 
-            // Filter 2: Buang slot yang bertabrakan dengan Workshop kelas yang sama
-            // (misal: WS Web A tidak boleh bersamaan dengan WS Mobile A di semester yang sama)
-            $mkKelas = $mk->kelas ?? '';
-            if (!empty($mkKelas) && !empty($kelasSlots[$mk->semester][$mkKelas][$hari->id])) {
-                $validJamIndices = array_values(array_filter($validJamIndices, function ($start) use ($durationSlots, $kelasSlots, $mk, $hari, $mkKelas) {
-                    $end = $start + $durationSlots;
-                    foreach ($kelasSlots[$mk->semester][$mkKelas][$hari->id] as [$kStart, $kEnd]) {
-                        if ($start < $kEnd && $end > $kStart) return false;
+            // Filter 2: Buang slot yang bertabrakan dengan Workshop kelas yang beririsan
+            // (misal: WS Web A tidak boleh bersamaan dengan WS Mobile A di semester yang sama;
+            // MK kelas gabungan "A,B" juga dianggap beririsan dengan MK kelas "A" tunggal)
+            $mkKelasLetters = $this->kelasSet($mk->kelas ?? '');
+            if (!empty($mkKelasLetters)) {
+                $blockedKelasRanges = [];
+                foreach ($mkKelasLetters as $letter) {
+                    if (!empty($kelasSlots[$mk->semester][$letter][$hari->id])) {
+                        $blockedKelasRanges = array_merge($blockedKelasRanges, $kelasSlots[$mk->semester][$letter][$hari->id]);
                     }
-                    return true;
-                }));
+                }
+                if (!empty($blockedKelasRanges)) {
+                    $validJamIndices = array_values(array_filter($validJamIndices, function ($start) use ($durationSlots, $blockedKelasRanges) {
+                        $end = $start + $durationSlots;
+                        foreach ($blockedKelasRanges as [$kStart, $kEnd]) {
+                            if ($start < $kEnd && $end > $kStart) return false;
+                        }
+                        return true;
+                    }));
+                }
             }
 
             // Filter 3: Buang slot yang sudah dipakai dosen yang sama (lintas semester)
@@ -446,6 +483,23 @@ protected function generateRandomSchedule(): array
                 }));
             }
 
+            // Filter 5: Buang slot yang tidak punya ruangan bebas sama sekali di pool-nya
+            if ($roomPool->count() > 0) {
+                $validJamIndices = array_values(array_filter($validJamIndices, function ($start) use ($durationSlots, $roomSlots, $hari, $roomPool) {
+                    $end = $start + $durationSlots;
+                    foreach ($roomPool as $r) {
+                        $busy = false;
+                        if (!empty($roomSlots[$r->id][$hari->id])) {
+                            foreach ($roomSlots[$r->id][$hari->id] as [$rStart, $rEnd]) {
+                                if ($start < $rEnd && $end > $rStart) { $busy = true; break; }
+                            }
+                        }
+                        if (!$busy) return true; // minimal 1 ruangan bebas di slot ini
+                    }
+                    return false;
+                }));
+            }
+
             if (empty($validJamIndices)) {
                 continue;
             }
@@ -454,11 +508,18 @@ protected function generateRandomSchedule(): array
             sort($validJamIndices);
             $r        = mt_rand(0, 1000) / 1000;
             $startIdx = $validJamIndices[min(count($validJamIndices) - 1, (int) floor(pow($r, 3) * count($validJamIndices)))];
+            $endIdx   = $startIdx + $durationSlots;
 
-            // Pilih ruangan sesuai tipe MK (Teori/Campuran -> 101/Aula | Praktek -> semua)
-            $ruangan = ($mk->sks_teori > 0)
-                ? $this->data['teori_ruangans']->random()
-                : $this->data['ruangan']->random();
+            // Pilih ruangan sesuai tipe MK, hanya dari yang benar-benar bebas di slot terpilih
+            // (Filter 5 memastikan minimal 1 ruangan tersedia)
+            $freeRooms = $roomPool->filter(function ($r) use ($roomSlots, $hari, $startIdx, $endIdx) {
+                if (empty($roomSlots[$r->id][$hari->id])) return true;
+                foreach ($roomSlots[$r->id][$hari->id] as [$rStart, $rEnd]) {
+                    if ($startIdx < $rEnd && $endIdx > $rStart) return false;
+                }
+                return true;
+            });
+            $ruangan = $freeRooms->isNotEmpty() ? $freeRooms->random() : $roomPool->random();
 
             $teknisiId = null;
             if ($isWorkshopOnly && $this->data['teknisi']->count() > 0) {
@@ -614,13 +675,14 @@ protected function generateRandomSchedule(): array
                 ->pluck('hari_id')
                 ->toArray();
 
-            // Bangun peta slot Teori, kelas-Workshop, dan Dosen dari jadwal saat ini
-            // agar mutasi menempatkan kelas ke posisi yang sudah pasti bebas konflik
+            // Bangun peta slot Teori, kelas-Workshop, Dosen, Teknisi & Ruangan dari
+            // jadwal saat ini agar mutasi menempatkan kelas ke posisi yang sudah
+            // pasti bebas konflik
             $teoriSlots = [];
             $kelasSlots = [];
             $dosenSlots = [];
             $teknisiSlots = [];
-            $itemKelas  = $item['kelas'] ?? '';
+            $roomSlots  = [];
 
             foreach ($scheduleData as $idx => $other) {
                 if ($idx === $mutateIdx) continue;
@@ -634,27 +696,65 @@ protected function generateRandomSchedule(): array
                     $teoriSlots[$other['semester']][$oHId][] = [$oStart, $oEnd];
                 }
 
-                // Track kelas workshop (hanya kelas yang sama di semester yang sama)
-                if (
-                    $other['semester'] == $item['semester'] && !$other['is_teori']
-                    && !empty($itemKelas) && ($other['kelas'] ?? '') === $itemKelas
-                ) {
-                    $kelasSlots[$other['semester']][$itemKelas][$oHId][] = [$oStart, $oEnd];
+                // Track kelas workshop: dicatat di bawah SEMUA huruf kelas milik $other
+                // sendiri (bukan hanya saat identik dengan $itemKelas), supaya MK kelas
+                // gabungan ("A,B") tetap terlihat oleh MK kelas tunggal ("A") dan sebaliknya
+                if ($other['semester'] == $item['semester'] && !$other['is_teori'] && !empty($other['kelas'])) {
+                    foreach ($this->kelasSet($other['kelas']) as $letter) {
+                        $kelasSlots[$other['semester']][$letter][$oHId][] = [$oStart, $oEnd];
+                    }
                 }
 
                 // Track dosen (lintas semester — 1 dosen tidak boleh mengajar 2 kelas bersamaan)
                 if (!empty($other['dosen_id']) && $other['dosen_id'] == $item['dosen_id']) {
                     $dosenSlots[$item['dosen_id']][$oHId][] = [$oStart, $oEnd];
                 }
-                
+
                 // Track teknisi
                 if (!empty($other['teknisi_id'])) {
                     $teknisiSlots[$other['teknisi_id']][$oHId][] = [$oStart, $oEnd];
                 }
+
+                // Track ruangan (dipertahankan di semua level fallback — tidak boleh dobel pesan)
+                $roomSlots[$other['ruangan_id']][$oHId][] = [$oStart, $oEnd];
             }
 
             $currentTeknisiId = $item['teknisi_id'] ?? null;
-            $newAssignment = $this->getRandomAssignment($mkMutate, $item['dosen_id'], $item['duration_slots'], $excludedHariIds, $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots, $currentTeknisiId);
+
+            // Fallback bertingkat (meniru generateRandomSchedule): kalau slot 100%
+            // bebas konflik tidak ada, lepas constraint secara bertahap alih-alih
+            // membiarkan mutasi diam-diam tidak melakukan apa-apa (no-op).
+            // teoriSlots & roomSlots dipertahankan di setiap level — dua ini wajib,
+            // bukan "nice to have".
+            $newAssignment = $this->getRandomAssignment(
+                $mkMutate, $item['dosen_id'], $item['duration_slots'],
+                $excludedHariIds, $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots, $currentTeknisiId, $roomSlots
+            );
+
+            if ($newAssignment === null) {
+                // Level 2 — boleh hari yang sama dengan sesi lain MK ini
+                $newAssignment = $this->getRandomAssignment(
+                    $mkMutate, $item['dosen_id'], $item['duration_slots'],
+                    [], $teoriSlots, $kelasSlots, $dosenSlots, $teknisiSlots, $currentTeknisiId, $roomSlots
+                );
+            }
+
+            if ($newAssignment === null) {
+                // Level 3 — lepas kelas, dosen & teknisi; tetap hindari teori & ruangan
+                $newAssignment = $this->getRandomAssignment(
+                    $mkMutate, $item['dosen_id'], $item['duration_slots'],
+                    [], $teoriSlots, [], [], [], $currentTeknisiId, $roomSlots
+                );
+            }
+
+            if ($newAssignment === null) {
+                // Level 4 — lepas semua constraint kecuali ruangan
+                $newAssignment = $this->getRandomAssignment(
+                    $mkMutate, $item['dosen_id'], $item['duration_slots'],
+                    [], [], [], [], [], $currentTeknisiId, $roomSlots
+                );
+            }
+
             if ($newAssignment) {
                 $item['hari_id']    = $newAssignment['hari_id'];
                 $item['jam_id']     = $newAssignment['jam_id'];
@@ -662,11 +762,28 @@ protected function generateRandomSchedule(): array
                 $item['teknisi_id'] = $newAssignment['teknisi_id'];
             }
         } else {
-            // Ganti Ruangan (30% ketika ada konflik, 50% ketika tidak ada)
-            $item['ruangan_id'] = ($mkMutate && $mkMutate->sks_teori > 0)
-                ? $this->data['teori_ruangans']->random()->id
-                : $this->data['ruangan']->random()->id;
-                
+            // Ganti Ruangan (30% ketika ada konflik, 50% ketika tidak ada) — hanya
+            // dari ruangan yang benar-benar bebas di hari/jam saat ini, bukan ->random() buta
+            $roomPool = ($mkMutate && $mkMutate->sks_teori > 0)
+                ? $this->data['teori_ruangans']
+                : $this->data['ruangan'];
+
+            $itemEnd = $item['jam_index'] + $item['duration_slots'];
+            $freeRooms = $roomPool->filter(function ($r) use ($scheduleData, $mutateIdx, $item, $itemEnd) {
+                if ($r->id == $item['ruangan_id']) return false; // pastikan benar-benar berganti
+                foreach ($scheduleData as $idx => $other) {
+                    if ($idx === $mutateIdx) continue;
+                    if ($other['ruangan_id'] != $r->id || $other['hari_id'] != $item['hari_id']) continue;
+                    $oEnd = $other['jam_index'] + $other['duration_slots'];
+                    if ($item['jam_index'] < $oEnd && $other['jam_index'] < $itemEnd) return false;
+                }
+                return true;
+            });
+
+            $item['ruangan_id'] = $freeRooms->isNotEmpty()
+                ? $freeRooms->random()->id
+                : $roomPool->random()->id; // tidak ada ruangan lain yang benar-benar bebas
+
             if (!$item['is_teori'] && $this->data['teknisi']->count() > 0) {
                 // Penyamarataan saat Mutasi Ruangan
                 $availableTeknisis = $this->data['teknisi']->pluck('id')->toArray();
@@ -737,13 +854,15 @@ protected function generateRandomSchedule(): array
         // karena seluruh angkatan harus hadir (Workshop/Praktek boleh paralel karena kelas dibagi)
         if ($a['semester'] == $b['semester'] && ($a['is_teori'] || $b['is_teori'])) return true;
 
-        // Konflik kelas Workshop: dua Workshop dari kelas yang sama (A/B/C) di semester yang sama
-        // tidak boleh bersamaan karena mahasiswanya adalah orang yang sama.
+        // Konflik kelas Workshop: dua Workshop dengan kelas yang beririsan (A/B/C,
+        // termasuk kombinasi seperti "A,B") di semester yang sama tidak boleh
+        // bersamaan karena mahasiswanya adalah orang yang sama.
         // Contoh: Workshop Web A dan Workshop Mobile A = mahasiswa kelas A yang sama.
+        // MK kelas "A,B" juga beririsan dengan MK kelas "A" tunggal.
         if (
             $a['semester'] == $b['semester']
             && !$a['is_teori'] && !$b['is_teori']      // Keduanya Workshop
-            && !empty($a['kelas']) && $a['kelas'] == $b['kelas'] // Kelas yang sama
+            && $this->kelasIntersects($a['kelas'] ?? '', $b['kelas'] ?? '')
         ) return true;
 
         return false;
@@ -784,7 +903,7 @@ protected function generateRandomSchedule(): array
                 if (
                     $a['semester'] == $b['semester']
                     && !$a['is_teori'] && !$b['is_teori']
-                    && !empty($a['kelas']) && $a['kelas'] == $b['kelas']
+                    && $this->kelasIntersects($a['kelas'] ?? '', $b['kelas'] ?? '')
                 ) $violations++;
             }
         }

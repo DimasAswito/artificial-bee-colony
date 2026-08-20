@@ -323,6 +323,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // Key localStorage untuk melacak job generate yang masih berjalan, supaya
+        // polling bisa dilanjutkan otomatis kalau halaman di-refresh/ditinggalkan.
+        const ABC_INFLIGHT_KEY = 'abc_inflight_history_id';
+
         function generatePageData() {
             return {
                 // Data from Controller
@@ -353,7 +357,7 @@
                     tahun_ajaran: @json($calendarInfo['default_tahun_ajaran']),
                     semester: @json($calendarInfo['default_semester']),
                     population: 50,
-                    max_cycles: 1000,
+                    max_cycles: 2500, // Dinaikkan dari 1000 — Ganjil butuh lebih banyak ruang cari di durasi 4 jam
                     durasi_4_sks: 4 // Default 4 Jam
                 },
                 isGenerating: false,
@@ -481,6 +485,28 @@
                         this.currentPage = 1;
                         this.search = '';
                     });
+
+                    // Lanjutkan polling kalau ada job generate yang masih berjalan
+                    // (mis. halaman sebelumnya di-refresh/ditinggalkan di tengah proses)
+                    const pendingId = localStorage.getItem(ABC_INFLIGHT_KEY);
+                    if (pendingId) {
+                        fetch(`{{ url('/generate-jadwal/status') }}/${pendingId}`, {
+                            headers: { 'Accept': 'application/json' }
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.status === 'Pending' || data.status === 'Processing') {
+                                    this.isGenerating = true;
+                                    this.startPolling(pendingId);
+                                } else {
+                                    // Final / Failed / not_found saat tab ditinggalkan — tidak ada yang perlu dilanjutkan
+                                    localStorage.removeItem(ABC_INFLIGHT_KEY);
+                                }
+                            })
+                            .catch(() => {
+                                // Gagal cek status (mis. offline) — biarkan flag, dicoba lagi saat load berikutnya
+                            });
+                    }
                 },
 
                 async submitGenerate() {
@@ -530,7 +556,9 @@
                             throw new Error(errorMsg);
                         }
 
-                        // Job berhasil di-dispatch — mulai polling status
+                        // Job berhasil di-dispatch — simpan id-nya supaya polling bisa
+                        // dilanjutkan otomatis kalau halaman ini di-refresh/ditinggalkan
+                        localStorage.setItem(ABC_INFLIGHT_KEY, String(data.history_id));
                         this.startPolling(data.history_id);
 
                     } catch (error) {
@@ -616,6 +644,7 @@
                 },
 
                 stopPolling() {
+                    localStorage.removeItem(ABC_INFLIGHT_KEY);
                     if (this._pollingInterval) {
                         clearInterval(this._pollingInterval);
                         this._pollingInterval = null;

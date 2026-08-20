@@ -240,7 +240,8 @@ class ABCController extends Controller
                 if ($a->dosen_id && $a->dosen_id == $b->dosen_id) $isConflict = true;
                 if (!empty($a->teknisi_id) && $a->teknisi_id == $b->teknisi_id) $isConflict = true;
                 if ($aSemester == $bSemester && ($aIsTeori || $bIsTeori)) $isConflict = true;
-                if ($aSemester == $bSemester && !$aIsTeori && !$bIsTeori && !empty($aKelas) && $aKelas == $bKelas) $isConflict = true;
+                // Kelas beririsan (bukan harus identik) — MK kelas "A,B" tetap bentrok dengan MK kelas "A"
+                if ($aSemester == $bSemester && !$aIsTeori && !$bIsTeori && \App\Support\KelasHelper::intersects($aKelas, $bKelas)) $isConflict = true;
 
                 if ($isConflict) {
                     $conflictingIds[] = $a->id;
@@ -666,6 +667,91 @@ class ABCController extends Controller
                         . 'Saran yang bisa dilakukan: '
                         . '(1) Kurangi durasi workshop per pertemuan'
                         . 'atau (2) Aktifkan lebih banyak hari kuliah.',
+                ];
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // CEK 4 — Kapasitas ruangan Teori: mata kuliah Teori/Campuran hanya
+        // boleh memakai ruangan Teori (mis. Ruang 101/Aula — lihat
+        // Ruangan::filterTeoriPool()), BUKAN semua ruangan aktif seperti Cek 1.
+        // Cek 1 tidak menangkap ini sama sekali, sehingga bisa lolos padahal
+        // ruang Teori riil jauh lebih sempit.
+        //
+        // Sesi Teori/Campuran semester yang sama saling eksklusif waktu
+        // (satu angkatan harus hadir bersamaan), tapi semester berbeda boleh
+        // bertumpuk waktu asal ruangan Teori-nya beda — persis cara
+        // ABCAlgorithm::getRandomAssignment() menjadwalkannya.
+        // ─────────────────────────────────────────────────────────────────
+        $teoriRuanganCount = Ruangan::filterTeoriPool(Ruangan::where('status', 'Active')->get())->count();
+
+        $totalUsableSlotsPerWeek = 0;
+        foreach ($haris as $hari) {
+            $totalUsableSlotsPerWeek += $countNonOverlappingBlocks(1, $hari);
+        }
+
+        $teoriDemandPerSemester = [];
+        $totalTeoriSlotsNeeded  = 0;
+
+        foreach ($mataKuliahs as $mk) {
+            if ($mk->sks_teori <= 0) continue;
+
+            $durasiTeoriSlots   = $mk->sks_teori * 2;
+            $durasiPraktekSlots = ($mk->sks_praktek > 0) ? ($mk->sks_praktek * 4) : 0; // Campuran: tidak kena override
+            $sessionSlots       = $durasiTeoriSlots + $durasiPraktekSlots;
+
+            $teoriDemandPerSemester[$mk->semester] = ($teoriDemandPerSemester[$mk->semester] ?? 0) + $sessionSlots;
+            $totalTeoriSlotsNeeded += $sessionSlots;
+        }
+
+        if ($totalTeoriSlotsNeeded > 0) {
+            // Sub-cek 4a — per semester: sesi Teori/Campuran semester yang sama
+            // saling eksklusif waktu, jadi kebutuhan 1 semester saja tidak boleh
+            // melebihi total slot valid dalam seminggu, terlepas dari jumlah ruangan.
+            foreach ($teoriDemandPerSemester as $sem => $demand) {
+                if ($demand > $totalUsableSlotsPerWeek) {
+                    return [
+                        'success' => false,
+                        'message' => 'Jam Teori semester ' . $sem . ' melebihi total waktu yang tersedia.',
+                        'details' => 'Semester ' . $sem . ' membutuhkan ' . $demand . ' slot jam Teori/Campuran, '
+                            . 'tapi hanya tersedia ' . $totalUsableSlotsPerWeek . ' slot waktu non-tumpang-tindih '
+                            . 'dalam seminggu (karena seluruh angkatan semester itu harus hadir bersamaan). '
+                            . 'Saran: kurangi SKS Teori, atau nonaktifkan beberapa mata kuliah Teori semester ini.',
+                    ];
+                }
+            }
+
+            // Sub-cek 4b — lintas semester: semua sesi Teori/Campuran berebut
+            // ruangan Teori yang sama (mis. hanya 2 ruangan: Ruang 101/Aula).
+            if ($teoriRuanganCount === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Belum ada ruangan aktif untuk mata kuliah Teori.',
+                    'details' => 'Silakan tambahkan dan aktifkan minimal 1 ruangan terlebih dahulu.',
+                ];
+            }
+
+            $teoriRoomCapacitySlots = $teoriRuanganCount * $totalUsableSlotsPerWeek;
+            if ($totalTeoriSlotsNeeded > $teoriRoomCapacitySlots) {
+                return [
+                    'success' => false,
+                    'message' => 'Ruangan Teori tidak cukup untuk semua mata kuliah Teori/Campuran.',
+                    'details' => 'Total kebutuhan jam Teori/Campuran (' . $totalTeoriSlotsNeeded . ' slot) melebihi '
+                        . 'kapasitas ' . $teoriRuanganCount . ' ruangan Teori (mis. Ruang 101/Aula) × '
+                        . $totalUsableSlotsPerWeek . ' slot/minggu = ' . $teoriRoomCapacitySlots . ' slot. '
+                        . 'Saran: aktifkan ruangan Teori tambahan (beri nama "Ruang 101"/"Aula" agar terdeteksi), '
+                        . 'atau nonaktifkan beberapa mata kuliah Teori.',
+                ];
+            }
+
+            $teoriUtilizationPct = (int) round($totalTeoriSlotsNeeded / $teoriRoomCapacitySlots * 100);
+            if ($teoriUtilizationPct > 80) {
+                return [
+                    'success' => false,
+                    'message' => 'Jadwal Teori terlalu padat — kemungkinan besar akan ada bentrok.',
+                    'details' => 'Jumlah jam Teori/Campuran terlalu banyak dibanding ruangan Teori dan waktu yang '
+                        . 'tersedia (utilisasi ' . $teoriUtilizationPct . '%). '
+                        . 'Saran: aktifkan ruangan Teori tambahan, atau nonaktifkan beberapa mata kuliah Teori.',
                 ];
             }
         }
