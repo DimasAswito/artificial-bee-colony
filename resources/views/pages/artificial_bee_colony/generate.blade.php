@@ -326,6 +326,16 @@
         // Key localStorage untuk melacak job generate yang masih berjalan, supaya
         // polling bisa dilanjutkan otomatis kalau halaman di-refresh/ditinggalkan.
         const ABC_INFLIGHT_KEY = 'abc_inflight_history_id';
+        // Timestamp (epoch ms) saat job mulai di-dispatch, dipakai untuk elapsed timer
+        // yang tetap akurat walau halaman di-refresh di tengah proses.
+        const ABC_INFLIGHT_STARTED_KEY = 'abc_inflight_started_at';
+
+        function formatElapsed(ms) {
+            const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
 
         function generatePageData() {
             return {
@@ -350,6 +360,10 @@
                 
                 // Data Calendar dari Controller
                 calendarInfo: @json($calendarInfo),
+
+                // Perkiraan durasi generate berdasarkan riwayat Final terakhir (bisa null)
+                durationEstimate: @json($durationEstimate),
+                _elapsedInterval: null,
 
                 // Form Config
                 form: {
@@ -497,10 +511,14 @@
                             .then(data => {
                                 if (data.status === 'Pending' || data.status === 'Processing') {
                                     this.isGenerating = true;
-                                    this.startPolling(pendingId);
+                                    // Pakai timestamp mulai yang tersimpan (bukan waktu sekarang) supaya
+                                    // elapsed timer tetap akurat setelah refresh halaman.
+                                    const startedAt = parseInt(localStorage.getItem(ABC_INFLIGHT_STARTED_KEY), 10) || Date.now();
+                                    this.startPolling(pendingId, startedAt);
                                 } else {
                                     // Final / Failed / not_found saat tab ditinggalkan — tidak ada yang perlu dilanjutkan
                                     localStorage.removeItem(ABC_INFLIGHT_KEY);
+                                    localStorage.removeItem(ABC_INFLIGHT_STARTED_KEY);
                                 }
                             })
                             .catch(() => {
@@ -532,6 +550,12 @@
 
                     if (!result.isConfirmed) return;
 
+                    // Minta izin notifikasi browser di sini — terikat langsung ke aksi
+                    // user (klik "Ya, Mulai!"), bukan diminta otomatis saat halaman dibuka.
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        Notification.requestPermission();
+                    }
+
                     this.isGenerating = true;
                     this.pollingStatus = '';
 
@@ -556,10 +580,13 @@
                             throw new Error(errorMsg);
                         }
 
-                        // Job berhasil di-dispatch — simpan id-nya supaya polling bisa
-                        // dilanjutkan otomatis kalau halaman ini di-refresh/ditinggalkan
+                        // Job berhasil di-dispatch — simpan id & waktu mulainya supaya polling
+                        // dan elapsed timer bisa dilanjutkan otomatis kalau halaman ini
+                        // di-refresh/ditinggalkan
+                        const startedAt = Date.now();
                         localStorage.setItem(ABC_INFLIGHT_KEY, String(data.history_id));
-                        this.startPolling(data.history_id);
+                        localStorage.setItem(ABC_INFLIGHT_STARTED_KEY, String(startedAt));
+                        this.startPolling(data.history_id, startedAt);
 
                     } catch (error) {
                         console.error('Generate error:', error);
@@ -576,14 +603,20 @@
                  * Polling status setiap 3 detik.
                  * Berhenti otomatis ketika status Final atau Failed.
                  */
-                startPolling(historyId) {
+                startPolling(historyId, startedAt) {
                     const statusUrl = `{{ url('/generate-jadwal/status') }}/${historyId}`;
+
+                    let durasiInfo = 'Proses ini umumnya berlangsung <strong>1–20 menit</strong>, tergantung jumlah mata kuliah, ruangan, dan kompleksitas jadwal.';
+                    if (this.durationEstimate && this.durationEstimate.avg_minutes) {
+                        durasiInfo += ` Berdasarkan ${this.durationEstimate.sample_size} riwayat terakhir, rata-rata proses memakan waktu sekitar <strong>${this.durationEstimate.avg_minutes} menit</strong>.`;
+                    }
 
                     // Tampilkan SweetAlert loading yang tidak bisa ditutup
                     Swal.fire({
                         title: 'Sedang Memproses Jadwal',
                         html: `
-                            <div class="text-sm text-gray-600 mb-4" id="swal-status-text">Menunggu antrian...</div>
+                            <div class="text-sm text-gray-600 mb-1" id="swal-status-text">Menunggu antrian...</div>
+                            <div class="text-xs text-gray-400 mb-4" id="swal-elapsed-text">Sudah berjalan: 00:00</div>
                             <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                                 <div id="swal-progress-bar"
                                     class="h-2.5 rounded-full"
@@ -596,13 +629,24 @@
                                     100% { background-position: -200% 0; }
                                 }
                             </style>
-                            <p class="mt-4 text-xs text-gray-400">Proses berjalan di background. Halaman akan diarahkan otomatis saat selesai.</p>
+                            <p class="mt-4 text-xs text-gray-500 text-left">${durasiInfo}</p>
+                            <p class="mt-2 text-xs text-gray-400 text-left">Anda bisa berpindah tab atau mengerjakan hal lain — proses tetap berjalan di server. Bahkan jika tab/browser ini ditutup, generate tetap lanjut; buka kembali halaman ini atau menu <strong>Riwayat Penjadwalan</strong> nanti untuk melihat hasilnya. Halaman ini akan otomatis diarahkan begitu selesai, selama masih terbuka.</p>
                         `,
                         allowOutsideClick: false,
                         allowEscapeKey: false,
                         showConfirmButton: false,
                         didOpen: () => { Swal.showLoading(); }
                     });
+
+                    // Elapsed timer — diperbarui tiap detik, terpisah dari interval polling.
+                    const updateElapsed = () => {
+                        const elapsedEl = document.getElementById('swal-elapsed-text');
+                        if (elapsedEl) {
+                            elapsedEl.textContent = `Sudah berjalan: ${formatElapsed(Date.now() - startedAt)}`;
+                        }
+                    };
+                    updateElapsed();
+                    this._elapsedInterval = setInterval(updateElapsed, 1000);
 
                     this._pollingInterval = setInterval(async () => {
                         try {
@@ -618,6 +662,7 @@
 
                             if (data.status === 'Final') {
                                 this.stopPolling();
+                                this.notifyCompletion('Jadwal Selesai', `Generate jadwal berhasil! Konflik: ${data.fitness}`);
                                 Swal.fire({
                                     title: 'Berhasil!',
                                     text: `Jadwal berhasil digenerate! Konflik: ${data.fitness}`,
@@ -629,6 +674,7 @@
 
                             } else if (data.status === 'Failed') {
                                 this.stopPolling();
+                                this.notifyCompletion('Generate Gagal', 'Terjadi kesalahan saat memproses jadwal di background.');
                                 Swal.fire({
                                     title: 'Generate Gagal',
                                     text: 'Terjadi kesalahan saat memproses jadwal di background. Silakan coba lagi.',
@@ -643,11 +689,24 @@
                     }, 3000); // polling setiap 3 detik
                 },
 
+                // Notifikasi browser saat generate selesai/gagal — melengkapi SweetAlert
+                // yang sudah ada, berguna terutama saat tab sedang di-background/minimize.
+                notifyCompletion(title, body) {
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification(title, { body });
+                    }
+                },
+
                 stopPolling() {
                     localStorage.removeItem(ABC_INFLIGHT_KEY);
+                    localStorage.removeItem(ABC_INFLIGHT_STARTED_KEY);
                     if (this._pollingInterval) {
                         clearInterval(this._pollingInterval);
                         this._pollingInterval = null;
+                    }
+                    if (this._elapsedInterval) {
+                        clearInterval(this._elapsedInterval);
+                        this._elapsedInterval = null;
                     }
                     this.isGenerating = false;
                     this.pollingStatus = '';

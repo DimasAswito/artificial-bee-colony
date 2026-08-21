@@ -42,6 +42,7 @@ class ABCController extends Controller
         $history    = RiwayatPenjadwalan::latest()->take(5)->get();
 
         $calendarInfo = $this->getAcademicCalendarData();
+        $durationEstimate = $this->estimateDurationMinutes();
 
         return view('pages.artificial_bee_colony.generate', compact(
             'dosen',
@@ -51,8 +52,37 @@ class ABCController extends Controller
             'jam',
             'teknisi',
             'history',
-            'calendarInfo'
+            'calendarInfo',
+            'durationEstimate'
         ));
+    }
+
+    /**
+     * Memperkirakan lama proses generate berdasarkan 5 riwayat terakhir yang
+     * berhasil (status Final). Angka ini kasar — termasuk waktu antre di
+     * queue, bukan murni waktu komputasi algoritma.
+     *
+     * @return array|null  ['avg_minutes' => float, 'sample_size' => int] atau null jika sampel < 2
+     */
+    private function estimateDurationMinutes(): ?array
+    {
+        $recentFinal = RiwayatPenjadwalan::where('status', 'Final')
+            ->latest()
+            ->take(5)
+            ->get(['created_at', 'updated_at']);
+
+        if ($recentFinal->count() < 2) {
+            return null;
+        }
+
+        $avgMinutes = $recentFinal->avg(function ($item) {
+            return $item->created_at->diffInSeconds($item->updated_at) / 60;
+        });
+
+        return [
+            'avg_minutes' => round($avgMinutes, 1),
+            'sample_size' => $recentFinal->count(),
+        ];
     }
 
     /**
@@ -180,11 +210,28 @@ class ABCController extends Controller
 
     /**
      * Menampilkan daftar semua riwayat generate jadwal dengan paginasi 10 per halaman.
+     * Untuk riwayat Final yang memiliki konflik, hitung juga rincian kategori
+     * konfliknya (hanya untuk 10 baris di halaman saat ini) agar bisa ditampilkan
+     * sebagai tooltip pada badge konflik.
      */
     public function riwayat()
     {
         $history = RiwayatPenjadwalan::latest()->paginate(10);
-        return view('pages.artificial_bee_colony.riwayat', compact('history'));
+
+        $jams = Jam::orderBy('jam_mulai')->where('status', 'Active')->get();
+        $conflictBreakdowns = [];
+
+        foreach ($history as $item) {
+            if ($item->status !== 'Final' || $item->best_fitness_value <= 0) {
+                continue;
+            }
+
+            $item->load(['jadwalKuliahs.mataKuliah']);
+            $durations = $this->calculateDurations($item);
+            $conflictBreakdowns[$item->id] = $this->countConflicts($item, $durations, $jams)['breakdown'];
+        }
+
+        return view('pages.artificial_bee_colony.riwayat', compact('history', 'conflictBreakdowns'));
     }
 
     /**
@@ -207,48 +254,9 @@ class ABCController extends Controller
         $durations = $this->calculateDurations($history);
 
         // Siapkan data pendukung untuk pengecekan konflik
-        $items  = $history->jadwalKuliahs;
         $jams   = Jam::orderBy('jam_mulai')->where('status', 'Active')->get();
-        $allJams = $jams->pluck('id')->values()->toArray();
-        $conflictingIds = [];
-
-        // Deteksi konflik: bandingkan semua pasangan jadwal pada hari yang sama
-        foreach ($items as $a) {
-            foreach ($items as $b) {
-                if ($a->id == $b->id) continue;
-                if ($a->hari_id != $b->hari_id) continue;
-
-                $aIndex = array_search($a->jam_id, $allJams);
-                $bIndex = array_search($b->jam_id, $allJams);
-                if ($aIndex === false || $bIndex === false) continue;
-
-                $aEnd = $aIndex + ($durations[$a->id] ?? 1);
-                $bEnd = $bIndex + ($durations[$b->id] ?? 1);
-
-                // Cek ada irisan waktu
-                if (!($aIndex < $bEnd && $bIndex < $aEnd)) continue;
-
-                $aSemester = $a->mataKuliah->semester ?? null;
-                $bSemester = $b->mataKuliah->semester ?? null;
-                $aIsTeori  = ($a->mataKuliah->sks_teori ?? 0) > 0;
-                $bIsTeori  = ($b->mataKuliah->sks_teori ?? 0) > 0;
-                $aKelas    = $a->mataKuliah->kelas ?? '';
-                $bKelas    = $b->mataKuliah->kelas ?? '';
-
-                $isConflict = false;
-                if ($a->ruangan_id == $b->ruangan_id) $isConflict = true;
-                if ($a->dosen_id && $a->dosen_id == $b->dosen_id) $isConflict = true;
-                if (!empty($a->teknisi_id) && $a->teknisi_id == $b->teknisi_id) $isConflict = true;
-                if ($aSemester == $bSemester && ($aIsTeori || $bIsTeori)) $isConflict = true;
-                // Kelas beririsan (bukan harus identik) — MK kelas "A,B" tetap bentrok dengan MK kelas "A"
-                if ($aSemester == $bSemester && !$aIsTeori && !$bIsTeori && \App\Support\KelasHelper::intersects($aKelas, $bKelas)) $isConflict = true;
-
-                if ($isConflict) {
-                    $conflictingIds[] = $a->id;
-                }
-            }
-        }
-        $conflictingIds = array_unique($conflictingIds);
+        $conflicts = $this->countConflicts($history, $durations, $jams);
+        $conflictingIds = $conflicts['conflicting_ids'];
 
         // Hitung jam selesai setiap kelas untuk ditampilkan di view
         $jamList  = $jams->values();
@@ -421,6 +429,72 @@ class ABCController extends Controller
         }
 
         return $durations;
+    }
+
+    /**
+     * Mendeteksi konflik dengan membandingkan semua pasangan jadwal pada hari
+     * yang sama untuk satu riwayat. Dipakai oleh detail() (highlight baris)
+     * dan riwayat() (ringkasan kategori pada badge daftar riwayat).
+     *
+     * @param  RiwayatPenjadwalan $history
+     * @param  array $durations  [jadwal_id => jumlah_slot], dari calculateDurations()
+     * @param  \Illuminate\Support\Collection $jams  Jam aktif terurut, dari Jam::orderBy('jam_mulai')
+     * @return array  ['conflicting_ids' => array, 'breakdown' => ['ruangan'=>n,'dosen'=>n,'teknisi'=>n,'semester_teori'=>n,'kelas_praktek'=>n]]
+     */
+    private function countConflicts($history, array $durations, $jams): array
+    {
+        $items = $history->jadwalKuliahs;
+        $allJams = $jams->pluck('id')->values()->toArray();
+        $conflictingIds = [];
+        $breakdown = [
+            'ruangan' => 0,
+            'dosen' => 0,
+            'teknisi' => 0,
+            'semester_teori' => 0,
+            'kelas_praktek' => 0,
+        ];
+
+        foreach ($items as $a) {
+            foreach ($items as $b) {
+                if ($a->id == $b->id) continue;
+                if ($a->hari_id != $b->hari_id) continue;
+
+                $aIndex = array_search($a->jam_id, $allJams);
+                $bIndex = array_search($b->jam_id, $allJams);
+                if ($aIndex === false || $bIndex === false) continue;
+
+                $aEnd = $aIndex + ($durations[$a->id] ?? 1);
+                $bEnd = $bIndex + ($durations[$b->id] ?? 1);
+
+                // Cek ada irisan waktu
+                if (!($aIndex < $bEnd && $bIndex < $aEnd)) continue;
+
+                $aSemester = $a->mataKuliah->semester ?? null;
+                $bSemester = $b->mataKuliah->semester ?? null;
+                $aIsTeori  = ($a->mataKuliah->sks_teori ?? 0) > 0;
+                $bIsTeori  = ($b->mataKuliah->sks_teori ?? 0) > 0;
+                $aKelas    = $a->mataKuliah->kelas ?? '';
+                $bKelas    = $b->mataKuliah->kelas ?? '';
+
+                $isConflict = false;
+                if ($a->ruangan_id == $b->ruangan_id) { $isConflict = true; $breakdown['ruangan']++; }
+                if ($a->dosen_id && $a->dosen_id == $b->dosen_id) { $isConflict = true; $breakdown['dosen']++; }
+                if (!empty($a->teknisi_id) && $a->teknisi_id == $b->teknisi_id) { $isConflict = true; $breakdown['teknisi']++; }
+                if ($aSemester == $bSemester && ($aIsTeori || $bIsTeori)) { $isConflict = true; $breakdown['semester_teori']++; }
+                // Kelas beririsan (bukan harus identik) — MK kelas "A,B" tetap bentrok dengan MK kelas "A"
+                if ($aSemester == $bSemester && !$aIsTeori && !$bIsTeori && \App\Support\KelasHelper::intersects($aKelas, $bKelas)) { $isConflict = true; $breakdown['kelas_praktek']++; }
+
+                if ($isConflict) {
+                    $conflictingIds[] = $a->id;
+                }
+            }
+        }
+
+        return [
+            'conflicting_ids' => array_unique($conflictingIds),
+            // Setiap pasangan konflik dihitung dari sisi $a dan $b, jadi bagi 2 untuk jumlah kejadian riil
+            'breakdown' => array_map(fn($n) => (int) ($n / 2), $breakdown),
+        ];
     }
 
     /**

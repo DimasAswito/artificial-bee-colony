@@ -51,7 +51,26 @@
                                         @elseif ($item->status === 'Failed')
                                             <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500">Gagal</span>
                                         @else
-                                            <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $item->best_fitness_value == 0 ? 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-500' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500' }}">
+                                            @php
+                                                $breakdown = $conflictBreakdowns[$item->id] ?? null;
+                                                $breakdownLabel = [
+                                                    'ruangan' => 'ruangan',
+                                                    'dosen' => 'dosen',
+                                                    'teknisi' => 'teknisi',
+                                                    'semester_teori' => 'semester',
+                                                    'kelas_praktek' => 'kelas',
+                                                ];
+                                                $breakdownText = $breakdown
+                                                    ? collect($breakdown)
+                                                        ->filter(fn($n) => $n > 0)
+                                                        ->map(fn($n, $key) => "{$n} {$breakdownLabel[$key]}")
+                                                        ->implode(', ')
+                                                    : null;
+                                            @endphp
+                                            <span
+                                                class="inline-flex rounded-full px-2 py-1 text-xs font-medium {{ $item->best_fitness_value == 0 ? 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-500' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500' }}"
+                                                @if($breakdownText) title="Rincian: {{ $breakdownText }}" @endif
+                                            >
                                                 {{ $item->best_fitness_value }}
                                             </span>
                                         @endif
