@@ -630,7 +630,7 @@
                                 }
                             </style>
                             <p class="mt-4 text-xs text-gray-500 text-left">${durasiInfo}</p>
-                            <p class="mt-2 text-xs text-gray-400 text-left">Anda bisa berpindah tab atau mengerjakan hal lain — proses tetap berjalan di server. Bahkan jika tab/browser ini ditutup, generate tetap lanjut; buka kembali halaman ini atau menu <strong>Riwayat Penjadwalan</strong> nanti untuk melihat hasilnya. Halaman ini akan otomatis diarahkan begitu selesai, selama masih terbuka.</p>
+                            <p class="mt-2 text-xs text-gray-400 text-left">Anda bisa berpindah tab atau mengerjakan hal lain. proses tetap berjalan di server. Bahkan jika tab/browser ini ditutup, generate tetap lanjut; buka kembali halaman ini atau menu <strong>Riwayat Penjadwalan</strong> nanti untuk melihat hasilnya. Halaman ini akan otomatis diarahkan begitu selesai, selama masih terbuka.</p>
                         `,
                         allowOutsideClick: false,
                         allowEscapeKey: false,
